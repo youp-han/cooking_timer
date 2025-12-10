@@ -27,6 +27,7 @@ class Recipes extends Table {
   IntColumn get resultStarter => integer()();
   IntColumn get resultFlour => integer()();
   IntColumn get resultWater => integer()();
+  RealColumn get temperature => real().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -63,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   // --- RECIPE METHODS ---
   Stream<List<Recipe>> watchAllRecipes() => select(recipes).watch();

@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:cooking_timer_app/database/database.dart';
+import 'package:sourdough_timer/database/database.dart';
 import 'package:drift/drift.dart' as drift;
 
 // Notification channel ID
@@ -43,7 +44,6 @@ Future<void> initializeService() async {
       // Make sure your app has a suitable launcher icon set in AndroidManifest.xml
       // You can also place a custom icon in android/app/src/main/res/drawable/
       // and reference it here, e.g., 'ic_bg_service_small'
-      initialNotificationIcon: 'mipmap/ic_launcher', 
     ),
     iosConfiguration: IosConfiguration(
       autoStart: true,
@@ -149,7 +149,7 @@ void onStart(ServiceInstance service) async {
           currentStepName = step.stepName;
           final previousStepsDuration = cumulativeDuration - step.durationInMinutes;
           final remainingMinutes = cumulativeDuration - elapsed.inMinutes;
-          timeRemaining = Duration(minutes: remainingMinutes) - (elapsed % Duration(minutes: 1)); // More precise remaining time
+          timeRemaining = Duration(minutes: remainingMinutes) - Duration(seconds: elapsed.inSeconds % 60); // More precise remaining time
           
           progress = elapsed.inMinutes / totalDuration;
           if (progress > 1.0) progress = 1.0; // Cap progress at 100%
@@ -227,7 +227,7 @@ void onStart(ServiceInstance service) async {
         } else {
           notificationContent = '${activeTimersData.length}개의 타이머가 실행 중입니다.';
         }
-        service.setForegroundNotification(
+        service.setForegroundNotificationInfo(
           title: '사워도우 타이머',
           content: notificationContent,
         );
@@ -235,6 +235,6 @@ void onStart(ServiceInstance service) async {
     }
 
     // Send update to UI
-    service.invoke('update', activeTimersData);
+    service.invoke('update', {'timers': activeTimersData});
   });
 }

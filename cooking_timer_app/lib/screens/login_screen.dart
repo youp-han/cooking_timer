@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cooking_timer_app/screens/main_screen.dart';
+import 'package:sourdough_timer/screens/main_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -425,6 +425,17 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _temperatureMeta = const VerificationMeta(
+    'temperature',
+  );
+  @override
+  late final GeneratedColumn<double> temperature = GeneratedColumn<double>(
+    'temperature',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -450,6 +461,7 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     resultStarter,
     resultFlour,
     resultWater,
+    temperature,
     createdAt,
   ];
   @override
@@ -557,6 +569,15 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     } else if (isInserting) {
       context.missing(_resultWaterMeta);
     }
+    if (data.containsKey('temperature')) {
+      context.handle(
+        _temperatureMeta,
+        temperature.isAcceptableOrUnknown(
+          data['temperature']!,
+          _temperatureMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -616,6 +637,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.int,
         data['${effectivePrefix}result_water'],
       )!,
+      temperature: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}temperature'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -641,6 +666,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final int resultStarter;
   final int resultFlour;
   final int resultWater;
+  final double? temperature;
   final DateTime createdAt;
   const Recipe({
     required this.id,
@@ -654,6 +680,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     required this.resultStarter,
     required this.resultFlour,
     required this.resultWater,
+    this.temperature,
     required this.createdAt,
   });
   @override
@@ -678,6 +705,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     map['result_starter'] = Variable<int>(resultStarter);
     map['result_flour'] = Variable<int>(resultFlour);
     map['result_water'] = Variable<int>(resultWater);
+    if (!nullToAbsent || temperature != null) {
+      map['temperature'] = Variable<double>(temperature);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -703,6 +733,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       resultStarter: Value(resultStarter),
       resultFlour: Value(resultFlour),
       resultWater: Value(resultWater),
+      temperature: temperature == null && nullToAbsent
+          ? const Value.absent()
+          : Value(temperature),
       createdAt: Value(createdAt),
     );
   }
@@ -724,6 +757,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       resultStarter: serializer.fromJson<int>(json['resultStarter']),
       resultFlour: serializer.fromJson<int>(json['resultFlour']),
       resultWater: serializer.fromJson<int>(json['resultWater']),
+      temperature: serializer.fromJson<double?>(json['temperature']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -742,6 +776,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'resultStarter': serializer.toJson<int>(resultStarter),
       'resultFlour': serializer.toJson<int>(resultFlour),
       'resultWater': serializer.toJson<int>(resultWater),
+      'temperature': serializer.toJson<double?>(temperature),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -758,6 +793,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     int? resultStarter,
     int? resultFlour,
     int? resultWater,
+    Value<double?> temperature = const Value.absent(),
     DateTime? createdAt,
   }) => Recipe(
     id: id ?? this.id,
@@ -771,6 +807,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     resultStarter: resultStarter ?? this.resultStarter,
     resultFlour: resultFlour ?? this.resultFlour,
     resultWater: resultWater ?? this.resultWater,
+    temperature: temperature.present ? temperature.value : this.temperature,
     createdAt: createdAt ?? this.createdAt,
   );
   Recipe copyWithCompanion(RecipesCompanion data) {
@@ -802,6 +839,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       resultWater: data.resultWater.present
           ? data.resultWater.value
           : this.resultWater,
+      temperature: data.temperature.present
+          ? data.temperature.value
+          : this.temperature,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -820,6 +860,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('resultStarter: $resultStarter, ')
           ..write('resultFlour: $resultFlour, ')
           ..write('resultWater: $resultWater, ')
+          ..write('temperature: $temperature, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -838,6 +879,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     resultStarter,
     resultFlour,
     resultWater,
+    temperature,
     createdAt,
   );
   @override
@@ -855,6 +897,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.resultStarter == this.resultStarter &&
           other.resultFlour == this.resultFlour &&
           other.resultWater == this.resultWater &&
+          other.temperature == this.temperature &&
           other.createdAt == this.createdAt);
 }
 
@@ -870,6 +913,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<int> resultStarter;
   final Value<int> resultFlour;
   final Value<int> resultWater;
+  final Value<double?> temperature;
   final Value<DateTime> createdAt;
   const RecipesCompanion({
     this.id = const Value.absent(),
@@ -883,6 +927,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.resultStarter = const Value.absent(),
     this.resultFlour = const Value.absent(),
     this.resultWater = const Value.absent(),
+    this.temperature = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   RecipesCompanion.insert({
@@ -897,6 +942,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     required int resultStarter,
     required int resultFlour,
     required int resultWater,
+    this.temperature = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        calculationType = Value(calculationType),
@@ -916,6 +962,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<int>? resultStarter,
     Expression<int>? resultFlour,
     Expression<int>? resultWater,
+    Expression<double>? temperature,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -930,6 +977,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (resultStarter != null) 'result_starter': resultStarter,
       if (resultFlour != null) 'result_flour': resultFlour,
       if (resultWater != null) 'result_water': resultWater,
+      if (temperature != null) 'temperature': temperature,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -946,6 +994,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<int>? resultStarter,
     Value<int>? resultFlour,
     Value<int>? resultWater,
+    Value<double?>? temperature,
     Value<DateTime>? createdAt,
   }) {
     return RecipesCompanion(
@@ -960,6 +1009,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       resultStarter: resultStarter ?? this.resultStarter,
       resultFlour: resultFlour ?? this.resultFlour,
       resultWater: resultWater ?? this.resultWater,
+      temperature: temperature ?? this.temperature,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1000,6 +1050,9 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (resultWater.present) {
       map['result_water'] = Variable<int>(resultWater.value);
     }
+    if (temperature.present) {
+      map['temperature'] = Variable<double>(temperature.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1020,6 +1073,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('resultStarter: $resultStarter, ')
           ..write('resultFlour: $resultFlour, ')
           ..write('resultWater: $resultWater, ')
+          ..write('temperature: $temperature, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2007,6 +2061,7 @@ typedef $$RecipesTableCreateCompanionBuilder =
       required int resultStarter,
       required int resultFlour,
       required int resultWater,
+      Value<double?> temperature,
       Value<DateTime> createdAt,
     });
 typedef $$RecipesTableUpdateCompanionBuilder =
@@ -2022,6 +2077,7 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<int> resultStarter,
       Value<int> resultFlour,
       Value<int> resultWater,
+      Value<double?> temperature,
       Value<DateTime> createdAt,
     });
 
@@ -2086,6 +2142,11 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<int> get resultWater => $composableBuilder(
     column: $table.resultWater,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get temperature => $composableBuilder(
+    column: $table.temperature,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2159,6 +2220,11 @@ class $$RecipesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get temperature => $composableBuilder(
+    column: $table.temperature,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2223,6 +2289,11 @@ class $$RecipesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get temperature => $composableBuilder(
+    column: $table.temperature,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -2266,6 +2337,7 @@ class $$RecipesTableTableManager
                 Value<int> resultStarter = const Value.absent(),
                 Value<int> resultFlour = const Value.absent(),
                 Value<int> resultWater = const Value.absent(),
+                Value<double?> temperature = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecipesCompanion(
                 id: id,
@@ -2279,6 +2351,7 @@ class $$RecipesTableTableManager
                 resultStarter: resultStarter,
                 resultFlour: resultFlour,
                 resultWater: resultWater,
+                temperature: temperature,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -2294,6 +2367,7 @@ class $$RecipesTableTableManager
                 required int resultStarter,
                 required int resultFlour,
                 required int resultWater,
+                Value<double?> temperature = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecipesCompanion.insert(
                 id: id,
@@ -2307,6 +2381,7 @@ class $$RecipesTableTableManager
                 resultStarter: resultStarter,
                 resultFlour: resultFlour,
                 resultWater: resultWater,
+                temperature: temperature,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
