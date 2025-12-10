@@ -1,4 +1,4 @@
-import 'package:cooking_timer_app/database/database.dart';
+import 'package:sourdough_timer/database/database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';

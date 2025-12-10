@@ -1,8 +1,7 @@
-import 'package:flutter/services.dart';
-import 'package:cooking_timer_app/database/database.dart';
-import 'package:cooking_timer_app/services/background_service.dart';
+import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/services/background_service.dart';
 import 'package:flutter/material.dart';
-import 'package:cooking_timer_app/screens/login_screen.dart';
+import 'package:sourdough_timer/screens/login_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 

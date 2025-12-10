@@ -1,4 +1,4 @@
-import 'package:cooking_timer_app/database/database.dart';
+import 'package:sourdough_timer/database/database.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,35 +12,59 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  // State for Ratio Calculator
-  final _totalStarterRatioCtrl = TextEditingController();
+  // Unified State
+  final _totalStarterCtrl = TextEditingController();
   final _starterRatioCtrl = TextEditingController(text: '1');
-  final _flourRatioCtrl = TextEditingController(text: '1');
-  final _waterRatioCtrl = TextEditingController(text: '1');
-  Map<String, int> _ratioResult = {};
-
-  // State for Time Calculator
-  final _totalStarterTimeCtrl = TextEditingController();
+  final _flourRatioCtrl = TextEditingController(text: '2');
+  final _waterRatioCtrl = TextEditingController(text: '2');
+  final _temperatureCtrl = TextEditingController(text: '24');
+  Map<String, int> _result = {'starter': 0, 'flour': 0, 'water': 0};
   String _selectedTimeframe = '6-8';
-  Map<String, int> _timeResult = {};
 
   final List<String> _timeframes = [
     '4-6', '6-8', '8-10', '10-12', '12-14', '16-24'
   ];
 
-  void _calculateRatio() {
-    final totalStarter = double.tryParse(_totalStarterRatioCtrl.text) ?? 0;
+  final Map<String, List<double>> _timeframeRatios = {
+    '4-6': [1, 1, 1],
+    '6-8': [1, 2, 2],
+    '8-10': [1, 3, 3],
+    '10-12': [1, 4, 4],
+    '12-14': [1, 5, 5],
+    '16-24': [1, 10, 10],
+  };
+
+  void _updateRatiosFromTimeframe(String? timeframe) {
+    if (timeframe == null) return;
+
+    final ratios = _timeframeRatios[timeframe] ?? [1, 2, 2];
+    setState(() {
+      _selectedTimeframe = timeframe;
+      _starterRatioCtrl.text = ratios[0].toString();
+      _flourRatioCtrl.text = ratios[1].toString();
+      _waterRatioCtrl.text = ratios[2].toString();
+      _calculate();
+    });
+  }
+
+  void _calculate() {
+    final totalStarter = double.tryParse(_totalStarterCtrl.text) ?? 0;
     final starterRatio = double.tryParse(_starterRatioCtrl.text) ?? 1;
     final flourRatio = double.tryParse(_flourRatioCtrl.text) ?? 1;
     final waterRatio = double.tryParse(_waterRatioCtrl.text) ?? 1;
 
-    if (totalStarter <= 0) return;
+    if (totalStarter <= 0) {
+      setState(() {
+        _result = {'starter': 0, 'flour': 0, 'water': 0};
+      });
+      return;
+    }
 
     final totalRatio = starterRatio + flourRatio + waterRatio;
     if (totalRatio == 0) return;
 
     setState(() {
-      _ratioResult = {
+      _result = {
         'starter': (totalStarter * starterRatio / totalRatio).round(),
         'flour': (totalStarter * flourRatio / totalRatio).round(),
         'water': (totalStarter * waterRatio / totalRatio).round(),
@@ -48,37 +72,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
 
-  void _calculateTime() {
-    final totalStarter = double.tryParse(_totalStarterTimeCtrl.text) ?? 0;
-    if (totalStarter <= 0) return;
-
-    Map<String, List<double>> ratios = {
-      '4-6': [1, 1, 1],
-      '6-8': [1, 2, 2],
-      '8-10': [1, 3, 3],
-      '10-12': [1, 4, 4],
-      '12-14': [1, 5, 5],
-      '16-24': [1, 10, 10],
-    };
-
-    final ratio = ratios[_selectedTimeframe] ?? [1, 1, 1];
-    final starterRatio = ratio[0];
-    final flourRatio = ratio[1];
-    final waterRatio = ratio[2];
-    final totalRatio = starterRatio + flourRatio + waterRatio;
-    
-    if (totalRatio == 0) return;
-
-    setState(() {
-      _timeResult = {
-        'starter': (totalStarter * starterRatio / totalRatio).round(),
-        'flour': (totalStarter * flourRatio / totalRatio).round(),
-        'water': (totalStarter * waterRatio / totalRatio).round(),
-      };
-    });
-  }
-
-  Future<void> _showSaveRecipeDialog(String type) async {
+  Future<void> _showSaveRecipeDialog() async {
     final nameController = TextEditingController();
     return showDialog<void>(
       context: context,
@@ -100,7 +94,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               child: const Text('저장'),
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  _saveRecipeToDb(nameController.text, type);
+                  _saveRecipeToDb(nameController.text);
                   Navigator.of(context).pop();
                 }
               },
@@ -111,41 +105,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
-  Future<void> _saveRecipeToDb(String name, String type) async {
+  Future<void> _saveRecipeToDb(String name) async {
     final db = Provider.of<AppDatabase>(context, listen: false);
-    
-    RecipesCompanion recipe;
 
-    if (type == 'ratio') {
-      recipe = RecipesCompanion(
-        name: drift.Value(name),
-        calculationType: const drift.Value('ratio'),
-        totalStarter: drift.Value(double.tryParse(_totalStarterRatioCtrl.text) ?? 0),
-        starterRatio: drift.Value(double.tryParse(_starterRatioCtrl.text) ?? 1),
-        flourRatio: drift.Value(double.tryParse(_flourRatioCtrl.text) ?? 1),
-        waterRatio: drift.Value(double.tryParse(_waterRatioCtrl.text) ?? 1),
-        resultStarter: drift.Value(_ratioResult['starter'] ?? 0),
-        resultFlour: drift.Value(_ratioResult['flour'] ?? 0),
-        resultWater: drift.Value(_ratioResult['water'] ?? 0),
-      );
-    } else { // time
-      final ratio = {
-        '4-6': [1.0, 1.0, 1.0], '6-8': [1.0, 2.0, 2.0], '8-10': [1.0, 3.0, 3.0],
-        '10-12': [1.0, 4.0, 4.0], '12-14': [1.0, 5.0, 5.0], '16-24': [1.0, 10.0, 10.0],
-      }[_selectedTimeframe]!;
-      recipe = RecipesCompanion(
-        name: drift.Value(name),
-        calculationType: const drift.Value('time'),
-        totalStarter: drift.Value(double.tryParse(_totalStarterTimeCtrl.text) ?? 0),
-        timeframe: drift.Value(_selectedTimeframe),
-        starterRatio: drift.Value(ratio[0]),
-        flourRatio: drift.Value(ratio[1]),
-        waterRatio: drift.Value(ratio[2]),
-        resultStarter: drift.Value(_timeResult['starter'] ?? 0),
-        resultFlour: drift.Value(_timeResult['flour'] ?? 0),
-        resultWater: drift.Value(_timeResult['water'] ?? 0),
-      );
-    }
+    final recipe = RecipesCompanion(
+      name: drift.Value(name),
+      calculationType: const drift.Value('unified'), // Or any identifier you prefer
+      totalStarter: drift.Value(double.tryParse(_totalStarterCtrl.text) ?? 0),
+      timeframe: drift.Value(_selectedTimeframe),
+      starterRatio: drift.Value(double.tryParse(_starterRatioCtrl.text) ?? 1),
+      flourRatio: drift.Value(double.tryParse(_flourRatioCtrl.text) ?? 1),
+      waterRatio: drift.Value(double.tryParse(_waterRatioCtrl.text) ?? 1),
+      temperature: drift.Value(double.tryParse(_temperatureCtrl.text) ?? 24),
+      resultStarter: drift.Value(_result['starter'] ?? 0),
+      resultFlour: drift.Value(_result['flour'] ?? 0),
+      resultWater: drift.Value(_result['water'] ?? 0),
+    );
 
     await db.addRecipe(recipe);
 
@@ -159,11 +134,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   void dispose() {
-    _totalStarterRatioCtrl.dispose();
+    _totalStarterCtrl.dispose();
     _starterRatioCtrl.dispose();
     _flourRatioCtrl.dispose();
     _waterRatioCtrl.dispose();
-    _totalStarterTimeCtrl.dispose();
+    _temperatureCtrl.dispose();
     super.dispose();
   }
 
@@ -171,106 +146,73 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Widget build(BuildContext context) {
     final inputFormatter = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))];
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('계산기'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: '비율 기반'),
-              Tab(text: '시간 기반'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('사워도우 계산기'),
+      ),
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _totalStarterCtrl,
+                decoration: const InputDecoration(
+                  labelText: '총 스타터 양 (g)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: inputFormatter,
+                onChanged: (_) => _calculate(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _temperatureCtrl,
+                decoration: const InputDecoration(
+                  labelText: '온도 (°C)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: inputFormatter,
+                onChanged: (_) { /* Only update state if needed, calculation is on other fields */ },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedTimeframe,
+                decoration: const InputDecoration(
+                  labelText: '준비 시간 (Hours)',
+                  border: OutlineInputBorder(),
+                ),
+                items: _timeframes.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text('$value 시간'),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  _updateRatiosFromTimeframe(newValue);
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildRatioInput(_starterRatioCtrl, '스타터', inputFormatter)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildRatioInput(_flourRatioCtrl, '밀가루', inputFormatter)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildRatioInput(_waterRatioCtrl, '물', inputFormatter)),
+                ],
+              ),
+              _ResultBox(
+                result: _result,
+                onSave: () => _showSaveRecipeDialog(),
+              ),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            // Ratio Calculator Tab
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _totalStarterRatioCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '총 스타터 양 (g)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: inputFormatter,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildRatioInput(_starterRatioCtrl, '스타터 비율', inputFormatter)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildRatioInput(_flourRatioCtrl, '밀가루 비율', inputFormatter)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildRatioInput(_waterRatioCtrl, '물 비율', inputFormatter)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _calculateRatio,
-                    child: const Text('계산하기'),
-                  ),
-                  if (_ratioResult.isNotEmpty)
-                    _ResultBox(
-                      result: _ratioResult,
-                      onSave: () => _showSaveRecipeDialog('ratio'),
-                    ),
-                ],
-              ),
-            ),
-            // Time Calculator Tab
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _totalStarterTimeCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '총 스타터 양 (g)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: inputFormatter,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedTimeframe,
-                    decoration: const InputDecoration(
-                      labelText: '준비 시간 (Hours)',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _timeframes.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text('$value 시간'),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedTimeframe = newValue!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _calculateTime,
-                    child: const Text('계산하기'),
-                  ),
-                  if (_timeResult.isNotEmpty)
-                     _ResultBox(
-                      result: _timeResult,
-                      onSave: () => _showSaveRecipeDialog('time'),
-                    ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -286,6 +228,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       keyboardType: TextInputType.number,
       inputFormatters: formatters,
       textAlign: TextAlign.center,
+      onChanged: (_) => _calculate(),
     );
   }
 }

@@ -1,5 +1,5 @@
-import 'package:cooking_timer_app/database/database.dart';
-import 'package:cooking_timer_app/screens/timer_setup_screen.dart';
+import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/screens/timer_setup_screen.dart';
 import 'package:flutter/material.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
@@ -46,7 +46,7 @@ class RecipeDetailScreen extends StatelessWidget {
 
   Widget _buildDetailCard(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final isRatioType = recipe.calculationType == 'ratio';
+    final isUnifiedType = recipe.calculationType == 'unified';
 
     return Card(
       child: Padding(
@@ -56,13 +56,19 @@ class RecipeDetailScreen extends StatelessWidget {
           children: [
             Text('저장된 계산 정보', style: textTheme.titleLarge),
             const Divider(height: 24),
-            _buildDetailRow('계산 방식', isRatioType ? '비율 기반' : '시간 기반'),
-            if (isRatioType) ...[
+            if (isUnifiedType) ...[
               _buildDetailRow('총 스타터', '${recipe.totalStarter}g'),
-              _buildDetailRow('비율', '${recipe.starterRatio}:${recipe.flourRatio}:${recipe.waterRatio}'),
-            ] else ...[
-              _buildDetailRow('총 스타터', '${recipe.totalStarter}g'),
+              if (recipe.temperature != null)
+                _buildDetailRow('온도', '${recipe.temperature}°C'),
               _buildDetailRow('준비 시간', '${recipe.timeframe} 시간'),
+              _buildDetailRow('비율', '${recipe.starterRatio}:${recipe.flourRatio}:${recipe.waterRatio}'),
+            ] else ...[ // Legacy support
+              _buildDetailRow('계산 방식', recipe.calculationType == 'ratio' ? '비율 기반' : '시간 기반'),
+              _buildDetailRow('총 스타터', '${recipe.totalStarter}g'),
+              if (recipe.timeframe != null)
+                _buildDetailRow('준비 시간', '${recipe.timeframe} 시간'),
+              if (recipe.starterRatio != null)
+                _buildDetailRow('비율', '${recipe.starterRatio}:${recipe.flourRatio}:${recipe.waterRatio}'),
             ],
             const Divider(height: 24),
             Text('계산 결과', style: textTheme.titleMedium),

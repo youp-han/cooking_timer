@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cooking_timer_app/screens/calculator_screen.dart';
-import 'package:cooking_timer_app/screens/timer_screen.dart';
-import 'package:cooking_timer_app/screens/my_recipes_screen.dart';
-import 'package:cooking_timer_app/screens/guide_screen.dart';
-import 'package:cooking_timer_app/screens/settings_screen.dart';
+import 'package:sourdough_timer/screens/calculator_screen.dart';
+import 'package:sourdough_timer/screens/timer_screen.dart';
+import 'package:sourdough_timer/screens/my_recipes_screen.dart';
+import 'package:sourdough_timer/screens/guide_screen.dart';
+import 'package:sourdough_timer/screens/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
