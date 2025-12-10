@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:cooking_timer_app/database/database.dart';
 import 'package:cooking_timer_app/services/background_service.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,10 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Request notification permissions for Android
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =

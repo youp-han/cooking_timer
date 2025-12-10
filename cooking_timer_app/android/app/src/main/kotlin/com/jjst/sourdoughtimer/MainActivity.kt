@@ -1,4 +1,4 @@
-package com.example.cooking_timer_app
+package com.jjst.sourdoughtimer
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -18,15 +18,14 @@ class _TimerScreenState extends State<TimerScreen> {
     final service = FlutterBackgroundService();
     // Listen for updates from the background service
     service.on('update').listen((data) {
-      if (data != null && data['activeTimersData'] is List) {
-        setState(() {
-          _activeTimers = List<Map<String, dynamic>>.from(data['activeTimersData']);
-        });
+      if (data != null && data['activeTimers'] is List) {
+        if (mounted) {
+          setState(() {
+            _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
+          });
+        }
       }
     });
-
-    // Request immediate update when screen is opened
-    service.invoke('requestUpdate');
   }
 
   Future<void> _deleteSchedule(int scheduleId) async {
