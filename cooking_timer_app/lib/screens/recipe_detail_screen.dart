@@ -129,8 +129,12 @@ class RecipeDetailScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('  └ $name ($percentage%)',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              Expanded(
+                child: Text('  └ $name ($percentage%)',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
               Text('${_formatNumber(amount)}g',
                   style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
             ],
@@ -166,7 +170,12 @@ class RecipeDetailScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600)),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(color: Colors.grey.shade600),
+                overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),

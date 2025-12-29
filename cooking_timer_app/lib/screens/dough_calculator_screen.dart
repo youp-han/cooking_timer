@@ -76,7 +76,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     _flourItems.add(_FlourItem('강력분', '0'));
   }
 
-  void _calculate({bool updateGrams = true}) {
+  void _calculate({bool updateGrams = true, String? skipField, int? skipExtraIndex}) {
     if (_isCalculating) return;
     _isCalculating = true;
 
@@ -90,9 +90,9 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
         _result = {'flour': 0, 'water': 0, 'salt': 0, 'levain': 0};
         _extraResults = {};
         if (updateGrams) {
-          _waterGramsCtrl.text = '0';
-          _saltGramsCtrl.text = '0';
-          _levainGramsCtrl.text = '0';
+          if (skipField != 'water') _waterGramsCtrl.text = '0';
+          if (skipField != 'salt') _saltGramsCtrl.text = '0';
+          if (skipField != 'levain') _levainGramsCtrl.text = '0';
         }
       });
       _isCalculating = false;
@@ -130,14 +130,16 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
       };
       _extraResults = extras;
 
-      // g 필드 업데이트 (% 입력으로 계산할 때만)
+      // g 필드 업데이트 (현재 수정 중인 필드는 제외)
       if (updateGrams) {
-        _waterGramsCtrl.text = water.toString();
-        _saltGramsCtrl.text = salt.toString();
-        _levainGramsCtrl.text = levain.toString();
+        if (skipField != 'water') _waterGramsCtrl.text = water.toString();
+        if (skipField != 'salt') _saltGramsCtrl.text = salt.toString();
+        if (skipField != 'levain') _levainGramsCtrl.text = levain.toString();
         // 추가 재료 g 필드 업데이트
         for (int i = 0; i < _extraIngredients.length; i++) {
-          _extraIngredients[i].gramsController.text = extras['extra_$i'].toString();
+          if (skipExtraIndex != i) {
+            _extraIngredients[i].gramsController.text = extras['extra_$i'].toString();
+          }
         }
       }
     });
@@ -176,8 +178,8 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
       }
     }
 
-    // g 필드는 업데이트하지 않음 (사용자가 입력 중)
-    _calculate(updateGrams: false);
+    // 현재 수정 중인 필드를 제외하고 모든 g 필드 업데이트
+    _calculate(updateGrams: true, skipField: type, skipExtraIndex: extraIndex);
   }
 
   Future<void> _showSaveRecipeDialog() async {
