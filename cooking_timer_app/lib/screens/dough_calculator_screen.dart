@@ -24,14 +24,17 @@ class _FlourItem {
 class _ExtraIngredient {
   final TextEditingController nameController;
   final TextEditingController percentController;
+  final TextEditingController gramsController;
 
   _ExtraIngredient(String name, String percent)
       : nameController = TextEditingController(text: name),
-        percentController = TextEditingController(text: percent);
+        percentController = TextEditingController(text: percent),
+        gramsController = TextEditingController(text: '0');
 
   void dispose() {
     nameController.dispose();
     percentController.dispose();
+    gramsController.dispose();
   }
 }
 
@@ -48,8 +51,15 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
   final _saltPercentCtrl = TextEditingController(text: '2');
   final _levainPercentCtrl = TextEditingController(text: '20');
 
+  // g 입력용 컨트롤러
+  final _waterGramsCtrl = TextEditingController();
+  final _saltGramsCtrl = TextEditingController();
+  final _levainGramsCtrl = TextEditingController();
+
   final List<_FlourItem> _flourItems = [];
   final List<_ExtraIngredient> _extraIngredients = [];
+
+  bool _isCalculating = false; // 무한 루프 방지
 
   Map<String, int> _result = {
     'flour': 0,
@@ -66,7 +76,10 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     _flourItems.add(_FlourItem('강력분', '0'));
   }
 
-  void _calculate() {
+  void _calculate({bool updateGrams = true}) {
+    if (_isCalculating) return;
+    _isCalculating = true;
+
     final totalDough = double.tryParse(_totalDoughCtrl.text) ?? 0;
     final waterPercent = double.tryParse(_waterPercentCtrl.text) ?? 70;
     final saltPercent = double.tryParse(_saltPercentCtrl.text) ?? 2;
@@ -76,7 +89,13 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
       setState(() {
         _result = {'flour': 0, 'water': 0, 'salt': 0, 'levain': 0};
         _extraResults = {};
+        if (updateGrams) {
+          _waterGramsCtrl.text = '0';
+          _saltGramsCtrl.text = '0';
+          _levainGramsCtrl.text = '0';
+        }
       });
+      _isCalculating = false;
       return;
     }
 
@@ -98,7 +117,8 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     final Map<String, int> extras = {};
     for (int i = 0; i < _extraIngredients.length; i++) {
       final percent = double.tryParse(_extraIngredients[i].percentController.text) ?? 0;
-      extras['extra_$i'] = (totalDough * percent / totalPercent).round();
+      final grams = (totalDough * percent / totalPercent).round();
+      extras['extra_$i'] = grams;
     }
 
     setState(() {
@@ -109,7 +129,55 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
         'levain': levain,
       };
       _extraResults = extras;
+
+      // g 필드 업데이트 (% 입력으로 계산할 때만)
+      if (updateGrams) {
+        _waterGramsCtrl.text = water.toString();
+        _saltGramsCtrl.text = salt.toString();
+        _levainGramsCtrl.text = levain.toString();
+        // 추가 재료 g 필드 업데이트
+        for (int i = 0; i < _extraIngredients.length; i++) {
+          _extraIngredients[i].gramsController.text = extras['extra_$i'].toString();
+        }
+      }
     });
+
+    _isCalculating = false;
+  }
+
+  // g 입력으로부터 % 역계산
+  void _calculatePercentFromGrams(String type, String gramsText, {int? extraIndex}) {
+    if (_isCalculating) return;
+
+    final grams = double.tryParse(gramsText) ?? 0;
+    final flour = _result['flour'] ?? 1; // 0으로 나누기 방지
+
+    if (flour == 0) return;
+
+    final percent = (grams / flour * 100);
+
+    if (extraIndex != null) {
+      // 추가 재료의 경우
+      if (extraIndex < _extraIngredients.length) {
+        _extraIngredients[extraIndex].percentController.text = percent.toStringAsFixed(1);
+      }
+    } else {
+      // 기본 재료의 경우
+      switch (type) {
+        case 'water':
+          _waterPercentCtrl.text = percent.toStringAsFixed(1);
+          break;
+        case 'salt':
+          _saltPercentCtrl.text = percent.toStringAsFixed(1);
+          break;
+        case 'levain':
+          _levainPercentCtrl.text = percent.toStringAsFixed(1);
+          break;
+      }
+    }
+
+    // g 필드는 업데이트하지 않음 (사용자가 입력 중)
+    _calculate(updateGrams: false);
   }
 
   Future<void> _showSaveRecipeDialog() async {
@@ -204,6 +272,9 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     _waterPercentCtrl.dispose();
     _saltPercentCtrl.dispose();
     _levainPercentCtrl.dispose();
+    _waterGramsCtrl.dispose();
+    _saltGramsCtrl.dispose();
+    _levainGramsCtrl.dispose();
     for (var item in _flourItems) {
       item.dispose();
     }
@@ -285,11 +356,11 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
               const SizedBox(height: 16),
               _buildFlourResult(),
               const SizedBox(height: 16),
-              _buildPercentInputWithResult(_waterPercentCtrl, '물', 'water', inputFormatter),
+              _buildDualInputWithResult(_waterPercentCtrl, _waterGramsCtrl, '물', 'water', inputFormatter),
               const SizedBox(height: 12),
-              _buildPercentInputWithResult(_saltPercentCtrl, '소금', 'salt', inputFormatter),
+              _buildDualInputWithResult(_saltPercentCtrl, _saltGramsCtrl, '소금', 'salt', inputFormatter),
               const SizedBox(height: 12),
-              _buildPercentInputWithResult(_levainPercentCtrl, '르방', 'levain', inputFormatter),
+              _buildDualInputWithResult(_levainPercentCtrl, _levainGramsCtrl, '르방', 'levain', inputFormatter),
               const SizedBox(height: 16),
               _buildExtraIngredientsSection(inputFormatter),
               const SizedBox(height: 24),
@@ -307,18 +378,20 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     );
   }
 
-  Widget _buildPercentInputWithResult(
-    TextEditingController controller,
+  Widget _buildDualInputWithResult(
+    TextEditingController percentCtrl,
+    TextEditingController gramsCtrl,
     String label,
     String resultKey,
     List<TextInputFormatter> formatters,
   ) {
     return Row(
       children: [
+        // % 입력
         Expanded(
-          flex: 3,
+          flex: 2,
           child: TextField(
-            controller: controller,
+            controller: percentCtrl,
             decoration: InputDecoration(
               labelText: '$label (%)',
               border: const OutlineInputBorder(),
@@ -327,29 +400,32 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
             inputFormatters: formatters,
             onChanged: (_) => _calculate(),
             onTap: () {
-              controller.selection = TextSelection(
+              percentCtrl.selection = TextSelection(
                 baseOffset: 0,
-                extentOffset: controller.text.length,
+                extentOffset: percentCtrl.text.length,
               );
             },
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
+        // g 입력
         Expanded(
           flex: 2,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
+          child: TextField(
+            controller: gramsCtrl,
+            decoration: InputDecoration(
+              labelText: 'g',
+              border: const OutlineInputBorder(),
             ),
-            child: Text(
-              '${_result[resultKey] ?? 0}g',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (value) => _calculatePercentFromGrams(resultKey, value),
+            onTap: () {
+              gramsCtrl.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: gramsCtrl.text.length,
+              );
+            },
           ),
         ),
       ],
@@ -611,19 +687,22 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
+                          child: TextField(
+                            controller: ingredient.gramsController,
+                            decoration: const InputDecoration(
+                              labelText: 'g',
+                              border: OutlineInputBorder(),
+                              isDense: true,
                             ),
-                            child: Text(
-                              '${amount}g',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            onChanged: (value) => _calculatePercentFromGrams('', value, extraIndex: index),
+                            onTap: () {
+                              ingredient.gramsController.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: ingredient.gramsController.text.length,
+                              );
+                            },
                           ),
                         ),
                         IconButton(
