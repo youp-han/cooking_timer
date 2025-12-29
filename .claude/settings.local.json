@@ -6,7 +6,11 @@
       "Bash(wc:*)",
       "Bash(git -C \"/d/work_Codes/Cooking-Timer\" log --oneline -10)",
       "Bash(git -C \"/d/work_Codes/Cooking-Timer\" status)",
-      "Bash(git -C \"/d/work_Codes/Cooking-Timer\" log --oneline --all -15)"
+      "Bash(git -C \"/d/work_Codes/Cooking-Timer\" log --oneline --all -15)",
+      "Bash(flutter pub run:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter pub get:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

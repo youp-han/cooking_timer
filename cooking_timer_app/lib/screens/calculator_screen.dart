@@ -164,6 +164,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 keyboardType: TextInputType.number,
                 inputFormatters: inputFormatter,
                 onChanged: (_) => _calculate(),
+                onTap: () {
+                  _totalStarterCtrl.selection = TextSelection(
+                    baseOffset: 0,
+                    extentOffset: _totalStarterCtrl.text.length,
+                  );
+                },
               ),
               const SizedBox(height: 16),
               TextField(
@@ -175,6 +181,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 keyboardType: TextInputType.number,
                 inputFormatters: inputFormatter,
                 onChanged: (_) { /* Only update state if needed, calculation is on other fields */ },
+                onTap: () {
+                  _temperatureCtrl.selection = TextSelection(
+                    baseOffset: 0,
+                    extentOffset: _temperatureCtrl.text.length,
+                  );
+                },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -224,6 +236,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       inputFormatters: formatters,
       textAlign: TextAlign.center,
       onChanged: (_) => _calculate(),
+      onTap: () {
+        controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: controller.text.length,
+        );
+      },
     );
   }
 }

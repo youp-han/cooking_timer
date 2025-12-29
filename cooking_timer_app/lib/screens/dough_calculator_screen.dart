@@ -1,8 +1,39 @@
+import 'dart:convert';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+// Helper class for flour details
+class _FlourItem {
+  final TextEditingController nameController;
+  final TextEditingController amountController;
+
+  _FlourItem(String name, String amount)
+      : nameController = TextEditingController(text: name),
+        amountController = TextEditingController(text: amount);
+
+  void dispose() {
+    nameController.dispose();
+    amountController.dispose();
+  }
+}
+
+// Helper class for extra ingredients
+class _ExtraIngredient {
+  final TextEditingController nameController;
+  final TextEditingController percentController;
+
+  _ExtraIngredient(String name, String percent)
+      : nameController = TextEditingController(text: name),
+        percentController = TextEditingController(text: percent);
+
+  void dispose() {
+    nameController.dispose();
+    percentController.dispose();
+  }
+}
 
 class DoughCalculatorScreen extends StatefulWidget {
   const DoughCalculatorScreen({super.key});
@@ -17,13 +48,23 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
   final _saltPercentCtrl = TextEditingController(text: '2');
   final _levainPercentCtrl = TextEditingController(text: '20');
 
+  final List<_FlourItem> _flourItems = [];
+  final List<_ExtraIngredient> _extraIngredients = [];
+
   Map<String, int> _result = {
     'flour': 0,
     'water': 0,
     'salt': 0,
     'levain': 0,
   };
-  double _doughToLevainRatio = 0;
+  Map<String, int> _extraResults = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // 기본 강력분 추가
+    _flourItems.add(_FlourItem('강력분', '0'));
+  }
 
   void _calculate() {
     final totalDough = double.tryParse(_totalDoughCtrl.text) ?? 0;
@@ -34,18 +75,31 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     if (totalDough <= 0) {
       setState(() {
         _result = {'flour': 0, 'water': 0, 'salt': 0, 'levain': 0};
-        _doughToLevainRatio = 0;
+        _extraResults = {};
       });
       return;
     }
 
-    // Baker's Percentage 계산
-    final totalPercent = 100 + waterPercent + saltPercent + levainPercent;
+    // 추가 재료 퍼센티지 합계
+    double extraPercent = 0;
+    for (var ingredient in _extraIngredients) {
+      extraPercent += double.tryParse(ingredient.percentController.text) ?? 0;
+    }
+
+    // Baker's Percentage 계산 (추가 재료 포함)
+    final totalPercent = 100 + waterPercent + saltPercent + levainPercent + extraPercent;
 
     final flour = (totalDough * 100 / totalPercent).round();
     final water = (totalDough * waterPercent / totalPercent).round();
     final salt = (totalDough * saltPercent / totalPercent).round();
     final levain = (totalDough * levainPercent / totalPercent).round();
+
+    // 추가 재료 계산
+    final Map<String, int> extras = {};
+    for (int i = 0; i < _extraIngredients.length; i++) {
+      final percent = double.tryParse(_extraIngredients[i].percentController.text) ?? 0;
+      extras['extra_$i'] = (totalDough * percent / totalPercent).round();
+    }
 
     setState(() {
       _result = {
@@ -54,7 +108,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
         'salt': salt,
         'levain': levain,
       };
-      _doughToLevainRatio = levain > 0 ? totalDough / levain : 0;
+      _extraResults = extras;
     });
   }
 
@@ -94,6 +148,29 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
   Future<void> _saveRecipeToDb(String name) async {
     final db = Provider.of<AppDatabase>(context, listen: false);
 
+    // 밀가루 상세 정보를 JSON으로 변환
+    final flourDetailsList = _flourItems.map((item) {
+      return {
+        'name': item.nameController.text,
+        'amount': int.tryParse(item.amountController.text) ?? 0,
+      };
+    }).toList();
+    final flourDetailsJson = jsonEncode(flourDetailsList);
+
+    // 추가 재료 정보를 JSON으로 변환
+    final extraIngredientsList = _extraIngredients.asMap().entries.map((entry) {
+      final index = entry.key;
+      final ingredient = entry.value;
+      return {
+        'name': ingredient.nameController.text,
+        'percent': double.tryParse(ingredient.percentController.text) ?? 0,
+        'amount': _extraResults['extra_$index'] ?? 0,
+      };
+    }).toList();
+    final extraIngredientsJson = _extraIngredients.isNotEmpty
+        ? jsonEncode(extraIngredientsList)
+        : null;
+
     final recipe = RecipesCompanion(
       name: drift.Value(name),
       calculationType: const drift.Value('dough'),
@@ -101,10 +178,15 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
       starterRatio: drift.Value(100), // 밀가루는 항상 100%
       flourRatio: drift.Value(double.tryParse(_waterPercentCtrl.text) ?? 70),
       waterRatio: drift.Value(double.tryParse(_saltPercentCtrl.text) ?? 2),
-      temperature: drift.Value(double.tryParse(_levainPercentCtrl.text) ?? 20), // 르방 퍼센티지를 temperature에 임시 저장
+      temperature: drift.Value(double.tryParse(_levainPercentCtrl.text) ?? 20),
       resultStarter: drift.Value(_result['flour'] ?? 0),
       resultFlour: drift.Value(_result['water'] ?? 0),
       resultWater: drift.Value(_result['salt'] ?? 0),
+      resultLevain: drift.Value(_result['levain'] ?? 0),
+      flourDetails: drift.Value(flourDetailsJson),
+      extraIngredients: extraIngredientsJson != null
+          ? drift.Value(extraIngredientsJson)
+          : const drift.Value.absent(),
     );
 
     await db.addRecipe(recipe);
@@ -122,7 +204,48 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     _waterPercentCtrl.dispose();
     _saltPercentCtrl.dispose();
     _levainPercentCtrl.dispose();
+    for (var item in _flourItems) {
+      item.dispose();
+    }
+    for (var item in _extraIngredients) {
+      item.dispose();
+    }
     super.dispose();
+  }
+
+  int _getFlourTotal() {
+    int total = 0;
+    for (var item in _flourItems) {
+      total += int.tryParse(item.amountController.text) ?? 0;
+    }
+    return total;
+  }
+
+  void _addFlourItem() {
+    setState(() {
+      _flourItems.add(_FlourItem('밀가루', '0'));
+    });
+  }
+
+  void _removeFlourItem(int index) {
+    setState(() {
+      _flourItems[index].dispose();
+      _flourItems.removeAt(index);
+    });
+  }
+
+  void _addExtraIngredient() {
+    setState(() {
+      _extraIngredients.add(_ExtraIngredient('재료', '0'));
+    });
+  }
+
+  void _removeExtraIngredient(int index) {
+    setState(() {
+      _extraIngredients[index].dispose();
+      _extraIngredients.removeAt(index);
+      _calculate();
+    });
   }
 
   @override
@@ -147,6 +270,12 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 keyboardType: TextInputType.number,
                 inputFormatters: inputFormatter,
                 onChanged: (_) => _calculate(),
+                onTap: () {
+                  _totalDoughCtrl.selection = TextSelection(
+                    baseOffset: 0,
+                    extentOffset: _totalDoughCtrl.text.length,
+                  );
+                },
               ),
               const SizedBox(height: 24),
               Text(
@@ -154,15 +283,23 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 16),
-              _buildPercentInput(_waterPercentCtrl, '물 (%)', inputFormatter),
+              _buildFlourResult(),
+              const SizedBox(height: 16),
+              _buildPercentInputWithResult(_waterPercentCtrl, '물', 'water', inputFormatter),
               const SizedBox(height: 12),
-              _buildPercentInput(_saltPercentCtrl, '소금 (%)', inputFormatter),
+              _buildPercentInputWithResult(_saltPercentCtrl, '소금', 'salt', inputFormatter),
               const SizedBox(height: 12),
-              _buildPercentInput(_levainPercentCtrl, '르방 (%)', inputFormatter),
-              _ResultBox(
-                result: _result,
-                doughToLevainRatio: _doughToLevainRatio,
-                onSave: () => _showSaveRecipeDialog(),
+              _buildPercentInputWithResult(_levainPercentCtrl, '르방', 'levain', inputFormatter),
+              const SizedBox(height: 16),
+              _buildExtraIngredientsSection(inputFormatter),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => _showSaveRecipeDialog(),
+                icon: const Icon(Icons.save),
+                label: const Text('레시피로 저장'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ],
           ),
@@ -170,70 +307,346 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     );
   }
 
-  Widget _buildPercentInput(TextEditingController controller, String label, List<TextInputFormatter> formatters) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      keyboardType: TextInputType.number,
-      inputFormatters: formatters,
-      onChanged: (_) => _calculate(),
-    );
-  }
-}
-
-class _ResultBox extends StatelessWidget {
-  final Map<String, int> result;
-  final double doughToLevainRatio;
-  final VoidCallback onSave;
-
-  const _ResultBox({
-    required this.result,
-    required this.doughToLevainRatio,
-    required this.onSave,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(top: 24),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('결과', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text('밀가루: ${result['flour']}g', style: theme.textTheme.bodyLarge),
-          Text('물: ${result['water']}g', style: theme.textTheme.bodyLarge),
-          Text('소금: ${result['salt']}g', style: theme.textTheme.bodyLarge),
-          Text('르방: ${result['levain']}g', style: theme.textTheme.bodyLarge),
-          const Divider(height: 24),
-          Text(
-            '도우/르방: ${doughToLevainRatio > 0 ? doughToLevainRatio.toStringAsFixed(1) : '-'}',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+  Widget _buildPercentInputWithResult(
+    TextEditingController controller,
+    String label,
+    String resultKey,
+    List<TextInputFormatter> formatters,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: '$label (%)',
+              border: const OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: formatters,
+            onChanged: (_) => _calculate(),
+            onTap: () {
+              controller.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: controller.text.length,
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${_result[resultKey] ?? 0}g',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onSave,
-              icon: const Icon(Icons.save),
-              label: const Text('레시피로 저장'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFlourResult() {
+    final flourTotal = _result['flour'] ?? 0;
+    final inputTotal = _getFlourTotal();
+    final isValid = inputTotal == flourTotal;
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.colorScheme.outline),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '밀가루 (100%)',
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${flourTotal}g',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isValid
+                  ? theme.colorScheme.outline
+                  : theme.colorScheme.error,
+              width: isValid ? 1 : 2,
+            ),
+          ),
+            child: Column(
+              children: [
+                ..._flourItems.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final amount = int.tryParse(item.amountController.text) ?? 0;
+                  final percentage = flourTotal > 0
+                      ? (amount / flourTotal * 100).toStringAsFixed(1)
+                      : '0.0';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: item.nameController,
+                            decoration: const InputDecoration(
+                              labelText: '이름',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onTap: () {
+                              item.nameController.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: item.nameController.text.length,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: item.amountController,
+                            decoration: const InputDecoration(
+                              labelText: 'g',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            onChanged: (_) => setState(() {}),
+                            onTap: () {
+                              item.amountController.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: item.amountController.text.length,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            '$percentage%',
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        if (_flourItems.length > 1)
+                          IconButton(
+                            icon: Icon(Icons.delete_outline,
+                                size: 20, color: theme.colorScheme.error),
+                            onPressed: () => _removeFlourItem(index),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
+                TextButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('밀가루 추가'),
+                  onPressed: _addFlourItem,
+                ),
+                const Divider(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '합계:',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '$inputTotal g',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isValid
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+                if (!isValid)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      inputTotal > flourTotal
+                          ? '⚠️ ${inputTotal - flourTotal}g 초과'
+                          : '⚠️ ${flourTotal - inputTotal}g 부족',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
-      ),
+    );
+  }
+
+  Widget _buildExtraIngredientsSection(List<TextInputFormatter> inputFormatter) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.add_circle_outline, size: 20, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              '추가 재료',
+              style: theme.textTheme.titleMedium,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.colorScheme.outline),
+          ),
+          child: Column(
+            children: [
+              ..._extraIngredients.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final ingredient = entry.value;
+                  final amount = _extraResults['extra_$index'] ?? 0;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: ingredient.nameController,
+                            decoration: const InputDecoration(
+                              labelText: '이름',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              hintText: '예: 오일, 버터',
+                            ),
+                            onTap: () {
+                              ingredient.nameController.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: ingredient.nameController.text.length,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: ingredient.percentController,
+                            decoration: const InputDecoration(
+                              labelText: '%',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: inputFormatter,
+                            onChanged: (_) => _calculate(),
+                            onTap: () {
+                              ingredient.percentController.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: ingredient.percentController.text.length,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${amount}g',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline,
+                              size: 20, color: theme.colorScheme.error),
+                          onPressed: () => _removeExtraIngredient(index),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                );
+              }),
+              if (_extraIngredients.isNotEmpty) const SizedBox(height: 8),
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('재료 추가'),
+                onPressed: _addExtraIngredient,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

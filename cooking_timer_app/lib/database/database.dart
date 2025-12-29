@@ -18,7 +18,7 @@ class Users extends Table {
 class Recipes extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
-  TextColumn get calculationType => text()(); // 'ratio' or 'time'
+  TextColumn get calculationType => text()(); // 'ratio' or 'time' or 'dough'
   RealColumn get totalStarter => real()();
   RealColumn get starterRatio => real().nullable()();
   RealColumn get flourRatio => real().nullable()();
@@ -27,7 +27,10 @@ class Recipes extends Table {
   IntColumn get resultStarter => integer()();
   IntColumn get resultFlour => integer()();
   IntColumn get resultWater => integer()();
+  IntColumn get resultLevain => integer().nullable()();
   RealColumn get temperature => real().nullable()();
+  TextColumn get flourDetails => text().nullable()(); // JSON string for flour breakdown
+  TextColumn get extraIngredients => text().nullable()(); // JSON string for extra ingredients
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -64,7 +67,22 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 5) {
+        await migrator.addColumn(recipes, recipes.resultLevain);
+      }
+      if (from < 6) {
+        await migrator.addColumn(recipes, recipes.flourDetails);
+      }
+      if (from < 7) {
+        await migrator.addColumn(recipes, recipes.extraIngredients);
+      }
+    },
+  );
 
   // --- RECIPE METHODS ---
   Stream<List<Recipe>> watchAllRecipes() => select(recipes).watch();

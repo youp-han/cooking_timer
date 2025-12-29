@@ -100,7 +100,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                     ],
                   ),
                   subtitle: Text(
-                    '결과: 스타터 ${recipe.resultStarter}g, 밀가루 ${recipe.resultFlour}g, 물 ${recipe.resultWater}g',
+                    recipe.calculationType == 'dough'
+                        ? '밀가루 ${recipe.resultStarter}g, 물 ${recipe.resultFlour}g, 소금 ${recipe.resultWater}g${recipe.resultLevain != null ? ", 르방 ${recipe.resultLevain}g" : ""}'
+                        : '스타터 ${recipe.resultStarter}g, 밀가루 ${recipe.resultFlour}g, 물 ${recipe.resultWater}g',
                   ),
                   onTap: () {
                     Navigator.push(

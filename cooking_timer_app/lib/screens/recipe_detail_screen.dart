@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/screens/timer_setup_screen.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +60,7 @@ class RecipeDetailScreen extends StatelessWidget {
 
   Widget _buildDetailCard(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDoughType = recipe.calculationType == 'dough';
     final isUnifiedType = recipe.calculationType == 'unified';
 
     return Card(
@@ -69,7 +71,12 @@ class RecipeDetailScreen extends StatelessWidget {
           children: [
             Text('저장된 계산 정보', style: textTheme.titleLarge),
             const Divider(height: 24),
-            if (isUnifiedType) ...[
+            if (isDoughType) ...[
+              _buildDetailRow('총 도우 무게', '${_formatNumber(recipe.totalStarter)}g'),
+              if (recipe.temperature != null)
+                _buildDetailRow('베이커스 퍼센티지',
+                  '물 ${_formatRatio(recipe.flourRatio)}% / 소금 ${_formatRatio(recipe.waterRatio)}% / 르방 ${_formatRatio(recipe.temperature)}%'),
+            ] else if (isUnifiedType) ...[
               _buildDetailRow('총 르방', '${_formatNumber(recipe.totalStarter)}g'),
               if (recipe.temperature != null)
                 _buildDetailRow('온도', '${_formatNumber(recipe.temperature)}°C'),
@@ -86,13 +93,71 @@ class RecipeDetailScreen extends StatelessWidget {
             const Divider(height: 24),
             Text('계산 결과', style: textTheme.titleMedium),
             const SizedBox(height: 8),
-            _buildDetailRow('스타터', '${_formatNumber(recipe.resultStarter)}g', isSub: true),
-            _buildDetailRow('밀가루', '${_formatNumber(recipe.resultFlour)}g', isSub: true),
-            _buildDetailRow('물', '${_formatNumber(recipe.resultWater)}g', isSub: true),
+            if (isDoughType) ...[
+              _buildDetailRow('밀가루', '${_formatNumber(recipe.resultStarter)}g', isSub: true),
+              // 밀가루 상세 표시
+              if (recipe.flourDetails != null) ..._buildFlourDetails(recipe.flourDetails!),
+              _buildDetailRow('물', '${_formatNumber(recipe.resultFlour)}g', isSub: true),
+              _buildDetailRow('소금', '${_formatNumber(recipe.resultWater)}g', isSub: true),
+              if (recipe.resultLevain != null)
+                _buildDetailRow('르방', '${_formatNumber(recipe.resultLevain)}g', isSub: true),
+              // 추가 재료 표시
+              if (recipe.extraIngredients != null) ..._buildExtraIngredients(recipe.extraIngredients!),
+            ] else ...[
+              _buildDetailRow('스타터', '${_formatNumber(recipe.resultStarter)}g', isSub: true),
+              _buildDetailRow('밀가루', '${_formatNumber(recipe.resultFlour)}g', isSub: true),
+              _buildDetailRow('물', '${_formatNumber(recipe.resultWater)}g', isSub: true),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildFlourDetails(String flourDetailsJson) {
+    try {
+      final List<dynamic> flours = jsonDecode(flourDetailsJson);
+      final flourTotal = recipe.resultStarter;
+      return flours.map((flour) {
+        final name = flour['name'] ?? '';
+        final amount = flour['amount'] ?? 0;
+        final percentage = flourTotal > 0
+            ? (amount / flourTotal * 100).toStringAsFixed(1)
+            : '0.0';
+        return Padding(
+          padding: const EdgeInsets.only(left: 16.0, top: 2.0, bottom: 2.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('  └ $name ($percentage%)',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              Text('${_formatNumber(amount)}g',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+            ],
+          ),
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  List<Widget> _buildExtraIngredients(String extraIngredientsJson) {
+    try {
+      final List<dynamic> extras = jsonDecode(extraIngredientsJson);
+      return extras.map((extra) {
+        final name = extra['name'] ?? '';
+        final percent = extra['percent'] ?? 0;
+        final amount = extra['amount'] ?? 0;
+        return _buildDetailRow(
+          '$name (${_formatRatio(percent)}%)',
+          '${_formatNumber(amount)}g',
+          isSub: true,
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Widget _buildDetailRow(String label, String value, {bool isSub = false}) {
