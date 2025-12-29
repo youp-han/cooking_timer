@@ -72,6 +72,18 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
 
+  void _reset() {
+    setState(() {
+      _totalStarterCtrl.clear();
+      _starterRatioCtrl.text = '1';
+      _flourRatioCtrl.text = '2';
+      _waterRatioCtrl.text = '2';
+      _temperatureCtrl.text = '24';
+      _selectedTimeframe = '6-8';
+      _result = {'starter': 0, 'flour': 0, 'water': 0};
+    });
+  }
+
   Future<void> _showSaveRecipeDialog() async {
     final nameController = TextEditingController();
     return showDialog<void>(
@@ -218,6 +230,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               _ResultBox(
                 result: _result,
                 onSave: () => _showSaveRecipeDialog(),
+                onReset: _reset,
               ),
             ],
           ),
@@ -249,8 +262,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 class _ResultBox extends StatelessWidget {
   final Map<String, int> result;
   final VoidCallback onSave;
+  final VoidCallback onReset;
 
-  const _ResultBox({required this.result, required this.onSave});
+  const _ResultBox({required this.result, required this.onSave, required this.onReset});
 
   @override
   Widget build(BuildContext context) {
@@ -272,13 +286,24 @@ class _ResultBox extends StatelessWidget {
           Text('밀가루: ${result['flour']}g', style: theme.textTheme.bodyLarge),
           Text('물: ${result['water']}g', style: theme.textTheme.bodyLarge),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onSave,
-              icon: const Icon(Icons.save),
-              label: const Text('레시피로 저장'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onReset,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reset'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onSave,
+                  icon: const Icon(Icons.save),
+                  label: const Text('저장'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

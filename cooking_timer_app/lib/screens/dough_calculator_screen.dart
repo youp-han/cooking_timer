@@ -253,6 +253,37 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     _isCalculating = false;
   }
 
+  void _reset() {
+    setState(() {
+      // 컨트롤러 초기화
+      _totalDoughCtrl.clear();
+      _waterPercentCtrl.text = '70';
+      _saltPercentCtrl.text = '2';
+      _levainPercentCtrl.text = '20';
+      _waterGramsCtrl.clear();
+      _saltGramsCtrl.clear();
+      _levainGramsCtrl.clear();
+
+      // 밀가루 아이템 초기화
+      for (var item in _flourItems) {
+        item.dispose();
+      }
+      _flourItems.clear();
+      _flourItems.add(_FlourItem('밀가루1', '0'));
+
+      // 추가 재료 초기화
+      for (var ingredient in _extraIngredients) {
+        ingredient.dispose();
+      }
+      _extraIngredients.clear();
+
+      // 계산 모드 및 결과 초기화
+      _calculationMode = 'byDough';
+      _result = {'flour': 0, 'water': 0, 'salt': 0, 'levain': 0};
+      _extraResults = {};
+    });
+  }
+
   Future<void> _showSaveRecipeDialog() async {
     final nameController = TextEditingController();
     return showDialog<void>(
@@ -467,13 +498,30 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
               const SizedBox(height: 16),
               _buildExtraIngredientsSection(inputFormatter),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _showSaveRecipeDialog(),
-                icon: const Icon(Icons.save),
-                label: const Text('레시피로 저장'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _reset,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reset'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showSaveRecipeDialog(),
+                      icon: const Icon(Icons.save),
+                      label: const Text('저장'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
