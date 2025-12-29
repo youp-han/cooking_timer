@@ -60,6 +60,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
   final List<_ExtraIngredient> _extraIngredients = [];
 
   bool _isCalculating = false; // 무한 루프 방지
+  String _calculationMode = 'byDough'; // 'byDough' 또는 'byIngredients'
 
   Map<String, int> _result = {
     'flour': 0,
@@ -72,8 +73,8 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
   @override
   void initState() {
     super.initState();
-    // 기본 강력분 추가
-    _flourItems.add(_FlourItem('강력분', '0'));
+    // 기본 밀가루 추가
+    _flourItems.add(_FlourItem('밀가루1', '0'));
   }
 
   void _calculate({bool updateGrams = true, String? skipField, int? skipExtraIndex}) {
@@ -180,6 +181,76 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
 
     // 현재 수정 중인 필드를 제외하고 모든 g 필드 업데이트
     _calculate(updateGrams: true, skipField: type, skipExtraIndex: extraIndex);
+  }
+
+  // 재료 기준 계산 (재료 무게 → 총 도우 무게 & %)
+  void _calculateByIngredients() {
+    if (_isCalculating) return;
+    _isCalculating = true;
+
+    // 밀가루 총합 계산
+    int flourTotal = 0;
+    for (var item in _flourItems) {
+      flourTotal += int.tryParse(item.amountController.text) ?? 0;
+    }
+
+    // 재료 g 값 읽기
+    final waterGrams = double.tryParse(_waterGramsCtrl.text) ?? 0;
+    final saltGrams = double.tryParse(_saltGramsCtrl.text) ?? 0;
+    final levainGrams = double.tryParse(_levainGramsCtrl.text) ?? 0;
+
+    // 추가 재료 g 값 읽기
+    double extraGramsTotal = 0;
+    final Map<String, int> extras = {};
+    for (int i = 0; i < _extraIngredients.length; i++) {
+      final grams = double.tryParse(_extraIngredients[i].gramsController.text) ?? 0;
+      extras['extra_$i'] = grams.round();
+      extraGramsTotal += grams;
+    }
+
+    // 총 도우 무게 = 모든 재료의 합
+    final totalDough = flourTotal + waterGrams + saltGrams + levainGrams + extraGramsTotal;
+
+    // 밀가루를 기준으로 % 계산
+    double waterPercent = 0;
+    double saltPercent = 0;
+    double levainPercent = 0;
+
+    if (flourTotal > 0) {
+      waterPercent = (waterGrams / flourTotal * 100);
+      saltPercent = (saltGrams / flourTotal * 100);
+      levainPercent = (levainGrams / flourTotal * 100);
+    }
+
+    setState(() {
+      // 총 도우 무게 업데이트
+      _totalDoughCtrl.text = totalDough.round().toString();
+
+      // % 값 업데이트
+      _waterPercentCtrl.text = waterPercent.toStringAsFixed(1);
+      _saltPercentCtrl.text = saltPercent.toStringAsFixed(1);
+      _levainPercentCtrl.text = levainPercent.toStringAsFixed(1);
+
+      // 결과 업데이트
+      _result = {
+        'flour': flourTotal,
+        'water': waterGrams.round(),
+        'salt': saltGrams.round(),
+        'levain': levainGrams.round(),
+      };
+      _extraResults = extras;
+
+      // 추가 재료 % 계산
+      for (int i = 0; i < _extraIngredients.length; i++) {
+        if (flourTotal > 0) {
+          final grams = extras['extra_$i'] ?? 0;
+          final percent = (grams / flourTotal * 100);
+          _extraIngredients[i].percentController.text = percent.toStringAsFixed(1);
+        }
+      }
+    });
+
+    _isCalculating = false;
   }
 
   Future<void> _showSaveRecipeDialog() async {
@@ -296,7 +367,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
 
   void _addFlourItem() {
     setState(() {
-      _flourItems.add(_FlourItem('밀가루', '0'));
+      _flourItems.add(_FlourItem('밀가루${_flourItems.length + 1}', '0'));
     });
   }
 
@@ -334,20 +405,50 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 계산 모드 선택
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'byDough',
+                    label: Text('총 도우 기준'),
+                    icon: Icon(Icons.straighten),
+                  ),
+                  ButtonSegment(
+                    value: 'byIngredients',
+                    label: Text('재료 기준'),
+                    icon: Icon(Icons.bakery_dining),
+                  ),
+                ],
+                selected: {_calculationMode},
+                onSelectionChanged: (Set<String> newSelection) {
+                  setState(() {
+                    _calculationMode = newSelection.first;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _totalDoughCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '총 도우 무게 (g)',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  filled: _calculationMode == 'byIngredients',
+                  fillColor: _calculationMode == 'byIngredients'
+                      ? Colors.grey.shade200
+                      : null,
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: inputFormatter,
+                enabled: _calculationMode == 'byDough',
+                readOnly: _calculationMode == 'byIngredients',
                 onChanged: (_) => _calculate(),
                 onTap: () {
-                  _totalDoughCtrl.selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: _totalDoughCtrl.text.length,
-                  );
+                  if (_calculationMode == 'byDough') {
+                    _totalDoughCtrl.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: _totalDoughCtrl.text.length,
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 24),
@@ -387,6 +488,8 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     String resultKey,
     List<TextInputFormatter> formatters,
   ) {
+    final isIngredientsMode = _calculationMode == 'byIngredients';
+
     return Row(
       children: [
         // % 입력
@@ -397,15 +500,21 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
             decoration: InputDecoration(
               labelText: '$label (%)',
               border: const OutlineInputBorder(),
+              filled: isIngredientsMode,
+              fillColor: isIngredientsMode ? Colors.grey.shade200 : null,
             ),
             keyboardType: TextInputType.number,
             inputFormatters: formatters,
+            enabled: !isIngredientsMode,
+            readOnly: isIngredientsMode,
             onChanged: (_) => _calculate(),
             onTap: () {
-              percentCtrl.selection = TextSelection(
-                baseOffset: 0,
-                extentOffset: percentCtrl.text.length,
-              );
+              if (!isIngredientsMode) {
+                percentCtrl.selection = TextSelection(
+                  baseOffset: 0,
+                  extentOffset: percentCtrl.text.length,
+                );
+              }
             },
           ),
         ),
@@ -415,13 +524,19 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
           flex: 2,
           child: TextField(
             controller: gramsCtrl,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'g',
-              border: const OutlineInputBorder(),
+              border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) => _calculatePercentFromGrams(resultKey, value),
+            onChanged: (value) {
+              if (isIngredientsMode) {
+                _calculateByIngredients();
+              } else {
+                _calculatePercentFromGrams(resultKey, value);
+              }
+            },
             onTap: () {
               gramsCtrl.selection = TextSelection(
                 baseOffset: 0,
@@ -536,7 +651,13 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly
                             ],
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) {
+                              if (_calculationMode == 'byIngredients') {
+                                _calculateByIngredients();
+                              } else {
+                                setState(() {});
+                              }
+                            },
                             onTap: () {
                               item.amountController.selection = TextSelection(
                                 baseOffset: 0,
@@ -670,19 +791,25 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                           flex: 2,
                           child: TextField(
                             controller: ingredient.percentController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: '%',
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                               isDense: true,
+                              filled: _calculationMode == 'byIngredients',
+                              fillColor: _calculationMode == 'byIngredients' ? Colors.grey.shade200 : null,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: inputFormatter,
+                            enabled: _calculationMode != 'byIngredients',
+                            readOnly: _calculationMode == 'byIngredients',
                             onChanged: (_) => _calculate(),
                             onTap: () {
-                              ingredient.percentController.selection = TextSelection(
-                                baseOffset: 0,
-                                extentOffset: ingredient.percentController.text.length,
-                              );
+                              if (_calculationMode != 'byIngredients') {
+                                ingredient.percentController.selection = TextSelection(
+                                  baseOffset: 0,
+                                  extentOffset: ingredient.percentController.text.length,
+                                );
+                              }
                             },
                           ),
                         ),
@@ -698,7 +825,13 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            onChanged: (value) => _calculatePercentFromGrams('', value, extraIndex: index),
+                            onChanged: (value) {
+                              if (_calculationMode == 'byIngredients') {
+                                _calculateByIngredients();
+                              } else {
+                                _calculatePercentFromGrams('', value, extraIndex: index);
+                              }
+                            },
                             onTap: () {
                               ingredient.gramsController.selection = TextSelection(
                                 baseOffset: 0,

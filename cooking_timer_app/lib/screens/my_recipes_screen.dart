@@ -19,34 +19,89 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     _db = Provider.of<AppDatabase>(context);
   }
 
+  Future<void> _showDeleteAllDialog(List<Recipe> recipes) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('모두 삭제'),
+          content: Text('저장된 레시피 ${recipes.length}개를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('취소'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('삭제'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                // 모든 레시피 삭제
+                for (final recipe in recipes) {
+                  await _db.deleteRecipe(recipe.id);
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${recipes.length}개의 레시피가 삭제되었습니다.')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('내 레시피'),
-      ),
-      body: StreamBuilder<List<Recipe>>(
-        stream: _db.watchAllRecipes(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('오류가 발생했습니다: ${snapshot.error}'));
-          }
-          final recipes = snapshot.data ?? [];
+    return StreamBuilder<List<Recipe>>(
+      stream: _db.watchAllRecipes(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('내 레시피'),
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('내 레시피'),
+            ),
+            body: Center(child: Text('오류가 발생했습니다: ${snapshot.error}')),
+          );
+        }
+        final recipes = snapshot.data ?? [];
 
-          if (recipes.isEmpty) {
-            return const Center(
-              child: Text(
-                '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
-
-          return ListView.builder(
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('내 레시피'),
+            actions: recipes.isNotEmpty
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep),
+                      tooltip: '모두 삭제',
+                      onPressed: () => _showDeleteAllDialog(recipes),
+                    ),
+                  ]
+                : null,
+          ),
+          body: recipes.isEmpty
+              ? const Center(
+                  child: Text(
+                    '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : ListView.builder(
             itemCount: recipes.length,
             itemBuilder: (context, index) {
               final recipe = recipes[index];
@@ -115,9 +170,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

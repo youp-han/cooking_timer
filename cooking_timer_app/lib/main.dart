@@ -43,6 +43,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '사워도우 베이킹 도우미',
+      debugShowCheckedModeBanner: false, // DEBUG 배너 제거
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
