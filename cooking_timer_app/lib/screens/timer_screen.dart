@@ -11,6 +11,7 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen> {
   List<Map<String, dynamic>> _activeTimers = [];
+  bool _isLoading = true; // 초기 로딩 상태
 
   @override
   void initState() {
@@ -22,6 +23,7 @@ class _TimerScreenState extends State<TimerScreen> {
         if (mounted) {
           setState(() {
             _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
+            _isLoading = false; // 첫 업데이트를 받으면 로딩 완료
           });
         }
       }
@@ -35,6 +37,19 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 로딩 중일 때
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('진행중인 타이머'),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // 타이머가 없을 때
     if (_activeTimers.isEmpty) {
       return Scaffold(
         appBar: AppBar(
