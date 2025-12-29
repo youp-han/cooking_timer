@@ -1,19 +1,33 @@
+import 'dart:convert';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/screens/main_screen.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:provider/provider.dart';
 
 // A helper class to manage controllers for each step
 class _TimerStep {
   final TextEditingController nameController;
-  final TextEditingController durationController;
-  _TimerStep(String name, int duration)
+  final TextEditingController hoursController;
+  final TextEditingController minutesController;
+
+  _TimerStep(String name, int totalMinutes)
       : nameController = TextEditingController(text: name),
-        durationController = TextEditingController(text: duration.toString());
+        hoursController = TextEditingController(text: (totalMinutes ~/ 60).toString()),
+        minutesController = TextEditingController(text: (totalMinutes % 60).toString());
+
+  int getTotalMinutes() {
+    final hours = int.tryParse(hoursController.text) ?? 0;
+    final minutes = int.tryParse(minutesController.text) ?? 0;
+    return hours * 60 + minutes;
+  }
 
   void dispose() {
     nameController.dispose();
-    durationController.dispose();
+    hoursController.dispose();
+    minutesController.dispose();
   }
 }
 
@@ -31,17 +45,62 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
   @override
   void initState() {
     super.initState();
-    // Populate with a default sourdough schedule template
-    _steps.addAll([
-      _TimerStep('오토리즈 (Autolyse)', 60),
-      _TimerStep('1차 발효 (Bulk Fermentation) 시작', 30),
-      _TimerStep('폴딩 (Folding) #1', 30),
-      _TimerStep('폴딩 (Folding) #2', 30),
-      _TimerStep('폴딩 (Folding) #3', 180),
-      _TimerStep('성형 및 벤치 레스트 (Shaping & Bench Rest)', 30),
-      _TimerStep('2차 발효 (Final Proof)', 60),
-      _TimerStep('굽기 (Bake)', 45),
-    ]);
+    // Load timer steps from recipe if available
+    if (widget.recipe.timerSteps != null) {
+      try {
+        final List<dynamic> stepsJson = jsonDecode(widget.recipe.timerSteps!);
+        _steps.addAll(stepsJson.map((step) {
+          return _TimerStep(
+            step['name'] as String,
+            step['duration'] as int,
+          );
+        }));
+      } catch (e) {
+        // If parsing fails, use default template
+        _loadDefaultTemplate();
+      }
+    } else {
+      // Use default sourdough schedule template
+      _loadDefaultTemplate();
+    }
+  }
+
+  void _loadDefaultTemplate() {
+    // calculationType에 따라 다른 템플릿 사용
+    if (widget.recipe.calculationType == 'unified') {
+      // 사워도우 템플릿 (베이커스 퍼센티지 계산기)
+      _steps.addAll([
+        _TimerStep('오토리즈 (Autolyse)', 60),
+        _TimerStep('1차 발효 (Bulk Fermentation) 시작', 30),
+        _TimerStep('폴딩 (Folding) #1', 30),
+        _TimerStep('폴딩 (Folding) #2', 30),
+        _TimerStep('폴딩 (Folding) #3', 180),
+        _TimerStep('성형 및 벤치 레스트 (Shaping & Bench Rest)', 30),
+        _TimerStep('2차 발효 (Final Proof) - 냉장', 720), // 12시간
+        _TimerStep('굽기 (Bake)', 45),
+      ]);
+    } else if (widget.recipe.calculationType == 'dough') {
+      // 일반 도우 템플릿 (도우 계산기)
+      _steps.addAll([
+        _TimerStep('오토리즈 (Autolyse)', 30),
+        _TimerStep('1차 발효 (Bulk Fermentation)', 60),
+        _TimerStep('폴딩 (Folding)', 30),
+        _TimerStep('분할 및 둥글리기 (Divide & Round)', 15),
+        _TimerStep('벤치 타임 (Bench Rest)', 20),
+        _TimerStep('성형 (Shaping)', 15),
+        _TimerStep('2차 발효 (Final Proof)', 45),
+        _TimerStep('굽기 (Bake)', 25),
+      ]);
+    } else {
+      // 기타 타입은 기본 템플릿 사용
+      _steps.addAll([
+        _TimerStep('준비', 30),
+        _TimerStep('1차 발효', 60),
+        _TimerStep('성형', 20),
+        _TimerStep('2차 발효', 45),
+        _TimerStep('굽기', 30),
+      ]);
+    }
   }
 
   @override
@@ -65,15 +124,23 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
     });
   }
 
-  void _startTimer() {
+  Future<void> _startTimer() async {
+    final db = Provider.of<AppDatabase>(context, listen: false);
     final service = FlutterBackgroundService();
 
     final stepsMap = _steps.map((step) {
       return {
         'name': step.nameController.text,
-        'duration': int.tryParse(step.durationController.text) ?? 0,
+        'duration': step.getTotalMinutes(),
       };
     }).toList();
+
+    // 타이머 단계를 레시피에 저장
+    final timerStepsJson = jsonEncode(stepsMap);
+    final updatedRecipe = widget.recipe.toCompanion(true).copyWith(
+      timerSteps: drift.Value(timerStepsJson),
+    );
+    await db.updateRecipe(updatedRecipe);
 
     final timerData = {
       'name': widget.recipe.name,
@@ -84,10 +151,13 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
 
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
+
+      // 타이머 탭으로 전환 (인덱스 3)
+      MainScreen.globalKey.currentState?.switchToTab(3);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('타이머가 시작되었습니다!')),
       );
-      // TODO: Switch to the Timer tab
     }
   }
 
@@ -112,7 +182,7 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 4,
+                          flex: 5,
                           child: TextField(
                             controller: step.nameController,
                             decoration: const InputDecoration(labelText: '단계 이름'),
@@ -122,8 +192,24 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
                         Expanded(
                           flex: 2,
                           child: TextField(
-                            controller: step.durationController,
-                            decoration: const InputDecoration(labelText: '시간 (분)'),
+                            controller: step.hoursController,
+                            decoration: const InputDecoration(
+                              labelText: '시간',
+                              suffixText: 'h',
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: step.minutesController,
+                            decoration: const InputDecoration(
+                              labelText: '분',
+                              suffixText: 'm',
+                            ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           ),

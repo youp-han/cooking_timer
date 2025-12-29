@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       // TODO: Add login logic
                       Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => const MainScreen()),
+                        MaterialPageRoute(builder: (context) => MainScreen(key: MainScreen.globalKey)),
                       );
                     },
                     style: ElevatedButton.styleFrom(
