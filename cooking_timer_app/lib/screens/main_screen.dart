@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sourdough_timer/screens/calculator_screen.dart';
+import 'package:sourdough_timer/screens/calculator_tab_screen.dart';
 import 'package:sourdough_timer/screens/timer_screen.dart';
 import 'package:sourdough_timer/screens/my_recipes_screen.dart';
 import 'package:sourdough_timer/screens/guide_screen.dart';
@@ -18,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     MyRecipesScreen(),
     GuideScreen(),
-    CalculatorScreen(),
+    CalculatorTabScreen(),
     TimerScreen(),
     SettingsScreen(),
   ];

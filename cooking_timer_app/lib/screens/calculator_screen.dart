@@ -146,11 +146,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Widget build(BuildContext context) {
     final inputFormatter = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('사워도우 계산기'),
-      ),
-      body: GestureDetector(
+    return GestureDetector(
         onTap: () {
           FocusScope.of(context).unfocus();
         },
@@ -162,7 +158,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               TextField(
                 controller: _totalStarterCtrl,
                 decoration: const InputDecoration(
-                  labelText: '총 스타터 양 (g)',
+                  labelText: '총 르방 양 (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -213,8 +209,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               ),
             ],
           ),
-        ),
-      ),
+        )
     );
   }
 

@@ -6,6 +6,19 @@ class RecipeDetailScreen extends StatelessWidget {
   final Recipe recipe;
   const RecipeDetailScreen({super.key, required this.recipe});
 
+  String _formatNumber(num? value) {
+    if (value == null) return '0';
+    if (value == value.toInt()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
+  }
+
+  String _formatRatio(num? value) {
+    if (value == null) return '0.0';
+    return value.toStringAsFixed(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,25 +70,25 @@ class RecipeDetailScreen extends StatelessWidget {
             Text('저장된 계산 정보', style: textTheme.titleLarge),
             const Divider(height: 24),
             if (isUnifiedType) ...[
-              _buildDetailRow('총 스타터', '${recipe.totalStarter}g'),
+              _buildDetailRow('총 르방', '${_formatNumber(recipe.totalStarter)}g'),
               if (recipe.temperature != null)
-                _buildDetailRow('온도', '${recipe.temperature}°C'),
+                _buildDetailRow('온도', '${_formatNumber(recipe.temperature)}°C'),
               _buildDetailRow('준비 시간', '${recipe.timeframe} 시간'),
-              _buildDetailRow('비율', '${recipe.starterRatio}:${recipe.flourRatio}:${recipe.waterRatio}'),
+              _buildDetailRow('비율', '${_formatRatio(recipe.starterRatio)}:${_formatRatio(recipe.flourRatio)}:${_formatRatio(recipe.waterRatio)}'),
             ] else ...[ // Legacy support
               _buildDetailRow('계산 방식', recipe.calculationType == 'ratio' ? '비율 기반' : '시간 기반'),
-              _buildDetailRow('총 스타터', '${recipe.totalStarter}g'),
+              _buildDetailRow('총 르방', '${_formatNumber(recipe.totalStarter)}g'),
               if (recipe.timeframe != null)
                 _buildDetailRow('준비 시간', '${recipe.timeframe} 시간'),
               if (recipe.starterRatio != null)
-                _buildDetailRow('비율', '${recipe.starterRatio}:${recipe.flourRatio}:${recipe.waterRatio}'),
+                _buildDetailRow('비율', '${_formatRatio(recipe.starterRatio)}:${_formatRatio(recipe.flourRatio)}:${_formatRatio(recipe.waterRatio)}'),
             ],
             const Divider(height: 24),
             Text('계산 결과', style: textTheme.titleMedium),
             const SizedBox(height: 8),
-            _buildDetailRow('스타터', '${recipe.resultStarter}g', isSub: true),
-            _buildDetailRow('밀가루', '${recipe.resultFlour}g', isSub: true),
-            _buildDetailRow('물', '${recipe.resultWater}g', isSub: true),
+            _buildDetailRow('스타터', '${_formatNumber(recipe.resultStarter)}g', isSub: true),
+            _buildDetailRow('밀가루', '${_formatNumber(recipe.resultFlour)}g', isSub: true),
+            _buildDetailRow('물', '${_formatNumber(recipe.resultWater)}g', isSub: true),
           ],
         ),
       ),

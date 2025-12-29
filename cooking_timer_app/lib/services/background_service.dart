@@ -20,7 +20,7 @@ Future<void> initializeService() async {
     notificationChannelId,
     '사워도우 타이머',
     description: '타이머가 백그라운드에서 실행 중입니다.',
-    importance: Importance.low,
+    importance: Importance.high,
   );
 
   await flutterLocalNotificationsPlugin
@@ -144,6 +144,7 @@ void onStart(ServiceInstance service) async {
                   notificationChannelId, '사워도우 타이머',
                   icon: '@mipmap/ic_launcher',
                   importance: Importance.high,
+                  sound: RawResourceAndroidNotificationSound('stage_complete'),
                 ),
               ),
             );
@@ -163,6 +164,7 @@ void onStart(ServiceInstance service) async {
                 notificationChannelId, '사워도우 타이머',
                 icon: '@mipmap/ic_launcher',
                 importance: Importance.high,
+                sound: RawResourceAndroidNotificationSound('timer_complete'),
               ),
             ),
           );

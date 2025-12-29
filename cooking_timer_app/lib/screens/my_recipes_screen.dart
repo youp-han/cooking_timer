@@ -66,7 +66,39 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                   );
                 },
                 child: ListTile(
-                  title: Text(recipe.name),
+                  leading: Icon(
+                    recipe.calculationType == 'dough'
+                        ? Icons.pie_chart
+                        : Icons.calculate,
+                    color: recipe.calculationType == 'dough'
+                        ? Colors.orange
+                        : Colors.brown,
+                  ),
+                  title: Row(
+                    children: [
+                      Text(recipe.name),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: recipe.calculationType == 'dough'
+                              ? Colors.orange.shade100
+                              : Colors.brown.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          recipe.calculationType == 'dough' ? '도우' : '베이커스',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: recipe.calculationType == 'dough'
+                                ? Colors.orange.shade800
+                                : Colors.brown.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   subtitle: Text(
                     '결과: 스타터 ${recipe.resultStarter}g, 밀가루 ${recipe.resultFlour}g, 물 ${recipe.resultWater}g',
                   ),
