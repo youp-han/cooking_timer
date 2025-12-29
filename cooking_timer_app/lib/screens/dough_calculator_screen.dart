@@ -603,57 +603,13 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
     final isValid = inputTotal == flourTotal;
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '밀가루 (100%)',
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${flourTotal}g',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isValid
-                  ? theme.colorScheme.outline
-                  : theme.colorScheme.error,
-              width: isValid ? 1 : 2,
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
             child: Column(
               children: [
                 ..._flourItems.asMap().entries.map((entry) {
@@ -735,6 +691,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                     ),
                   );
                 }),
+                if (_flourItems.isNotEmpty) const SizedBox(height: 8),
                 TextButton.icon(
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('밀가루 추가'),
@@ -744,20 +701,43 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '합계:',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '합계 (입력):',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '필요량 (100%):',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '$inputTotal g',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isValid
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.error,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$inputTotal g',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isValid
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.error,
+                          ),
+                        ),
+                        Text(
+                          '$flourTotal g',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -777,7 +757,6 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
               ],
             ),
           ),
-        ],
     );
   }
 

@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
                     // 타이틀
                     Text(
-                      '사워도우 타이머',
+                      '베이킹 타이머',
                       style: theme.textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.primary,
