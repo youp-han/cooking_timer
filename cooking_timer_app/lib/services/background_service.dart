@@ -7,6 +7,7 @@ import 'package:flutter_background_service_android/flutter_background_service_an
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:shared_preferences/shared_preferences.dart';
 
 const String notificationChannelId = 'sourdough_timer_channel';
 const int notificationId = 888;
@@ -135,19 +136,24 @@ void onStart(ServiceInstance service) async {
           if (progress > 1.0) progress = 1.0;
 
           if (timeRemaining.inSeconds <= 0 && (lastNotifiedStep[schedule.id] ?? -1) < i) {
-            flutterLocalNotificationsPlugin.show(
-              schedule.id,
-              '${schedule.name}: ${step.stepName} 완료!',
-              '다음 단계로 넘어갈 시간입니다.',
-              const NotificationDetails(
-                android: AndroidNotificationDetails(
-                  notificationChannelId, '사워도우 타이머',
-                  icon: '@mipmap/ic_launcher',
-                  importance: Importance.high,
-                  sound: RawResourceAndroidNotificationSound('stage_complete'),
+            final prefs = await SharedPreferences.getInstance();
+            final isNotificationEnabled = prefs.getBool('timer_notification_enabled') ?? true;
+
+            if (isNotificationEnabled) {
+              flutterLocalNotificationsPlugin.show(
+                schedule.id,
+                '${schedule.name}: ${step.stepName} 완료!',
+                '다음 단계로 넘어갈 시간입니다.',
+                const NotificationDetails(
+                  android: AndroidNotificationDetails(
+                    notificationChannelId, '사워도우 타이머',
+                    icon: '@mipmap/ic_launcher',
+                    importance: Importance.high,
+                    sound: RawResourceAndroidNotificationSound('stage_complete'),
+                  ),
                 ),
-              ),
-            );
+              );
+            }
             lastNotifiedStep[schedule.id] = i;
           }
           break;
@@ -155,21 +161,26 @@ void onStart(ServiceInstance service) async {
       }
       
       if (isCompleted && (lastNotifiedStep[schedule.id] ?? -1) < steps.length) {
-         flutterLocalNotificationsPlugin.show(
-            schedule.id,
-            '${schedule.name}: 모든 단계 완료!',
-            '수고하셨습니다!',
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                notificationChannelId, '사워도우 타이머',
-                icon: '@mipmap/ic_launcher',
-                importance: Importance.high,
-                sound: RawResourceAndroidNotificationSound('timer_complete'),
+         final prefs = await SharedPreferences.getInstance();
+         final isNotificationEnabled = prefs.getBool('timer_notification_enabled') ?? true;
+
+         if (isNotificationEnabled) {
+           flutterLocalNotificationsPlugin.show(
+              schedule.id,
+              '${schedule.name}: 모든 단계 완료!',
+              '수고하셨습니다!',
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  notificationChannelId, '사워도우 타이머',
+                  icon: '@mipmap/ic_launcher',
+                  importance: Importance.high,
+                  sound: RawResourceAndroidNotificationSound('timer_complete'),
+                ),
               ),
-            ),
-          );
-          lastNotifiedStep[schedule.id] = steps.length;
-          await db.deleteSchedule(schedule.id);
+            );
+         }
+         lastNotifiedStep[schedule.id] = steps.length;
+         await db.deleteSchedule(schedule.id);
       }
 
 

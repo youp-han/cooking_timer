@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,11 +13,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String _versionString = '';
   String _appName = '';
+  bool _isNotificationEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _initPackageInfo();
+    _loadNotificationSettings();
   }
 
   Future<void> _initPackageInfo() async {
@@ -24,6 +27,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _appName = info.appName;
       _versionString = 'v${info.version} (${info.buildNumber})';
+    });
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isNotificationEnabled = prefs.getBool('timer_notification_enabled') ?? true;
+    });
+  }
+
+  Future<void> _saveNotificationSettings(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('timer_notification_enabled', value);
+    setState(() {
+      _isNotificationEnabled = value;
     });
   }
 
@@ -152,6 +170,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _sendFeedback() async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'jjst.soft+dev@gmail.com',
+      query: 'subject=베이킹 타이머 문의&body=',
+    );
+
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이메일 앱을 열 수 없습니다.')),
+        );
+      }
+    }
+  }
+
+  void _sendBugReport() async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'jjst.soft+dev@gmail.com',
+      query: 'subject=베이킹 타이머 버그 리포트&body=',
+    );
+
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이메일 앱을 열 수 없습니다.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -163,6 +217,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // 알림 설정 섹션
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.notifications,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '알림 설정',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('타이머 알림'),
+                    subtitle: const Text('타이머 단계 완료 시 알림을 받습니다'),
+                    trailing: Switch(
+                      value: _isNotificationEnabled,
+                      onChanged: (value) {
+                        _saveNotificationSettings(value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 피드백/문의하기 섹션
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.email,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: const Text('문의하기'),
+                  subtitle: const Text('이메일로 문의를 보낼 수 있습니다'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: _sendFeedback,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(
+                    Icons.bug_report,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: const Text('버그 리포트'),
+                  subtitle: const Text('이메일로 버그를 제보할 수 있습니다'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: _sendBugReport,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // 앱 정보 섹션
           Card(
             child: Padding(
