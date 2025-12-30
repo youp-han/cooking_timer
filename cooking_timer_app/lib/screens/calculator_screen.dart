@@ -292,7 +292,7 @@ class _ResultBox extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onReset,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Reset'),
+                  label: const Text('재설정'),
                 ),
               ),
               const SizedBox(width: 8),

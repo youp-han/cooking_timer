@@ -504,7 +504,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _reset,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Reset'),
+                      label: const Text('재설정'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -610,153 +610,152 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.colorScheme.outline),
       ),
-            child: Column(
-              children: [
-                ..._flourItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final amount = int.tryParse(item.amountController.text) ?? 0;
-                  final percentage = flourTotal > 0
-                      ? (amount / flourTotal * 100).toStringAsFixed(1)
-                      : '0.0';
+      child: Column(
+        children: [
+          ..._flourItems.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final amount = int.tryParse(item.amountController.text) ?? 0;
+            final percentage = flourTotal > 0
+                ? (amount / flourTotal * 100).toStringAsFixed(1)
+                : '0.0';
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: item.nameController,
-                            decoration: const InputDecoration(
-                              labelText: '이름',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            onTap: () {
-                              item.nameController.selection = TextSelection(
-                                baseOffset: 0,
-                                extentOffset: item.nameController.text.length,
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: item.amountController,
-                            decoration: const InputDecoration(
-                              labelText: 'g',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                            onChanged: (_) {
-                              if (_calculationMode == 'byIngredients') {
-                                _calculateByIngredients();
-                              } else {
-                                setState(() {});
-                              }
-                            },
-                            onTap: () {
-                              item.amountController.selection = TextSelection(
-                                baseOffset: 0,
-                                extentOffset: item.amountController.text.length,
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            '$percentage%',
-                            style: theme.textTheme.bodySmall,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        if (_flourItems.length > 1)
-                          IconButton(
-                            icon: Icon(Icons.delete_outline,
-                                size: 20, color: theme.colorScheme.error),
-                            onPressed: () => _removeFlourItem(index),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                      ],
-                    ),
-                  );
-                }),
-                if (_flourItems.isNotEmpty) const SizedBox(height: 8),
-                TextButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('밀가루 추가'),
-                  onPressed: _addFlourItem,
-                ),
-                const Divider(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '합계 (입력):',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        Text(
-                          '필요량 (100%):',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$inputTotal g',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isValid
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.error,
-                          ),
-                        ),
-                        Text(
-                          '$flourTotal g',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                if (!isValid)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      inputTotal > flourTotal
-                          ? '⚠️ ${inputTotal - flourTotal}g 초과'
-                          : '⚠️ ${flourTotal - inputTotal}g 부족',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.bold,
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: item.nameController,
+                      decoration: const InputDecoration(
+                        labelText: '이름',
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
+                      onTap: () {
+                        item.nameController.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: item.nameController.text.length,
+                        );
+                      },
                     ),
                   ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: item.amountController,
+                      decoration: const InputDecoration(
+                        labelText: 'g',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly
+                      ],
+                      onChanged: (_) {
+                        if (_calculationMode == 'byIngredients') {
+                          _calculateByIngredients();
+                        } else {
+                          setState(() {});
+                        }
+                      },
+                      onTap: () {
+                        item.amountController.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: item.amountController.text.length,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '$percentage%',
+                      style: theme.textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (_flourItems.length > 1)
+                    IconButton(
+                      icon: Icon(Icons.delete_outline,
+                          size: 20, color: theme.colorScheme.error),
+                      onPressed: () => _removeFlourItem(index),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                ],
+              ),
+            );
+          }),
+          if (_flourItems.isNotEmpty) const SizedBox(height: 8),
+          TextButton.icon(
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('밀가루 추가'),
+            onPressed: _addFlourItem,
           ),
+          const Divider(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '합계 (입력):',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    '필요량 (100%):',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$inputTotal g',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isValid
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.error,
+                    ),
+                  ),
+                  Text(
+                    '$flourTotal g',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (!isValid)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                inputTotal > flourTotal
+                    ? '⚠️ ${inputTotal - flourTotal}g 초과'
+                    : '⚠️ ${flourTotal - inputTotal}g 부족',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
