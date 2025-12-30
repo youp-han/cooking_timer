@@ -1,5 +1,7 @@
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/screens/recipe_detail_screen.dart';
+import 'package:sourdough_timer/widgets/common/index.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,12 +13,12 @@ class MyRecipesScreen extends StatefulWidget {
 }
 
 class _MyRecipesScreenState extends State<MyRecipesScreen> {
-  late AppDatabase _db;
+  late RecipeRepository _repository;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _db = Provider.of<AppDatabase>(context);
+    _repository = Provider.of<RecipeRepository>(context);
   }
 
   Future<void> _showDeleteAllDialog(List<Recipe> recipes) async {
@@ -42,7 +44,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 Navigator.of(context).pop();
                 // 모든 레시피 삭제
                 for (final recipe in recipes) {
-                  await _db.deleteRecipe(recipe.id);
+                  await _repository.delete(recipe.id);
                 }
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -60,14 +62,14 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Recipe>>(
-      stream: _db.watchAllRecipes(),
+      stream: _repository.watchAll(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: AppBar(
               title: const Text('내 레시피'),
             ),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const LoadingWidget(),
           );
         }
         if (snapshot.hasError) {
@@ -94,12 +96,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 : null,
           ),
           body: recipes.isEmpty
-              ? const Center(
-                  child: Text(
-                    '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
+              ? const EmptyStateWidget(
+                  message: '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
+                  icon: Icons.receipt_long,
                 )
               : ListView.builder(
             itemCount: recipes.length,
@@ -115,7 +114,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (_) {
-                  _db.deleteRecipe(recipe.id);
+                  _repository.delete(recipe.id);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('${recipe.name} 레시피가 삭제되었습니다.')),
                   );

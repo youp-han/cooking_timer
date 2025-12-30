@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/repositories/recipe_repository.dart';
+import 'package:sourdough_timer/repositories/timer_repository.dart';
 import 'package:sourdough_timer/services/background_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,9 +30,22 @@ Future<void> main() async {
   }
 
   runApp(
-    Provider<AppDatabase>(
-      create: (context) => AppDatabase(),
-      dispose: (context, db) => db.close(),
+    MultiProvider(
+      providers: [
+        // Database provider (base layer)
+        Provider<AppDatabase>(
+          create: (context) => AppDatabase(),
+          dispose: (context, db) => db.close(),
+        ),
+        // Recipe repository (depends on AppDatabase)
+        ProxyProvider<AppDatabase, RecipeRepository>(
+          update: (context, db, _) => RecipeRepositoryImpl(db),
+        ),
+        // Timer repository (depends on AppDatabase)
+        ProxyProvider<AppDatabase, TimerRepository>(
+          update: (context, db, _) => TimerRepositoryImpl(db),
+        ),
+      ],
       child: const MyApp(),
     ),
   );

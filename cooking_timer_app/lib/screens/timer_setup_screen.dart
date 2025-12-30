@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/screens/main_screen.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
@@ -126,7 +127,7 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
   }
 
   Future<void> _startTimer() async {
-    final db = Provider.of<AppDatabase>(context, listen: false);
+    final repository = Provider.of<RecipeRepository>(context, listen: false);
 
     final stepsMap = _steps.map((step) {
       return {
@@ -140,7 +141,7 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
     final updatedRecipe = widget.recipe.toCompanion(true).copyWith(
       timerSteps: drift.Value(timerStepsJson),
     );
-    await db.updateRecipe(updatedRecipe);
+    await repository.update(updatedRecipe);
 
     // Background service는 모바일 플랫폼에서만 사용
     if (Platform.isAndroid || Platform.isIOS) {

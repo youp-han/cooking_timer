@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/widgets/common/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
@@ -55,9 +56,7 @@ class _TimerScreenState extends State<TimerScreen> {
         appBar: AppBar(
           title: const Text('진행중인 타이머'),
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const LoadingWidget(),
       );
     }
 
@@ -67,12 +66,9 @@ class _TimerScreenState extends State<TimerScreen> {
         appBar: AppBar(
           title: const Text('진행중인 타이머'),
         ),
-        body: const Center(
-          child: Text(
-            '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
+        body: const EmptyStateWidget(
+          message: '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
+          icon: Icons.timer_off,
         ),
       );
     }
