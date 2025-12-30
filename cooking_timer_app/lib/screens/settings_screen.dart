@@ -237,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Special Thanks',
+                          'Special Thanks To',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),

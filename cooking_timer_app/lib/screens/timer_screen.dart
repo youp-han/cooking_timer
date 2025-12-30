@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -16,23 +17,34 @@ class _TimerScreenState extends State<TimerScreen> {
   @override
   void initState() {
     super.initState();
-    final service = FlutterBackgroundService();
-    // Listen for updates from the background service
-    service.on('update').listen((data) {
-      if (data != null && data['activeTimers'] is List) {
-        if (mounted) {
-          setState(() {
-            _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
-            _isLoading = false; // 첫 업데이트를 받으면 로딩 완료
-          });
+
+    // Background service는 모바일 플랫폼에서만 지원
+    if (Platform.isAndroid || Platform.isIOS) {
+      final service = FlutterBackgroundService();
+      // Listen for updates from the background service
+      service.on('update').listen((data) {
+        if (data != null && data['activeTimers'] is List) {
+          if (mounted) {
+            setState(() {
+              _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
+              _isLoading = false; // 첫 업데이트를 받으면 로딩 완료
+            });
+          }
         }
-      }
-    });
+      });
+    } else {
+      // Windows/macOS/Linux 등에서는 로딩 완료 처리
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _deleteSchedule(int scheduleId) async {
-    final service = FlutterBackgroundService();
-    service.invoke('deleteSchedule', {'scheduleId': scheduleId});
+    if (Platform.isAndroid || Platform.isIOS) {
+      final service = FlutterBackgroundService();
+      service.invoke('deleteSchedule', {'scheduleId': scheduleId});
+    }
   }
 
   @override

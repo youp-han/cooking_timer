@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/screens/main_screen.dart';
 import 'package:drift/drift.dart' as drift;
@@ -126,7 +127,6 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
 
   Future<void> _startTimer() async {
     final db = Provider.of<AppDatabase>(context, listen: false);
-    final service = FlutterBackgroundService();
 
     final stepsMap = _steps.map((step) {
       return {
@@ -142,12 +142,15 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
     );
     await db.updateRecipe(updatedRecipe);
 
-    final timerData = {
-      'name': widget.recipe.name,
-      'steps': stepsMap,
-    };
-
-    service.invoke('startTimer', timerData);
+    // Background service는 모바일 플랫폼에서만 사용
+    if (Platform.isAndroid || Platform.isIOS) {
+      final service = FlutterBackgroundService();
+      final timerData = {
+        'name': widget.recipe.name,
+        'steps': stepsMap,
+      };
+      service.invoke('startTimer', timerData);
+    }
 
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -155,8 +158,12 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
       // 타이머 탭으로 전환 (인덱스 3)
       MainScreen.globalKey.currentState?.switchToTab(3);
 
+      final message = (Platform.isAndroid || Platform.isIOS)
+          ? '타이머가 시작되었습니다!'
+          : '타이머 기능은 모바일에서만 지원됩니다.';
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('타이머가 시작되었습니다!')),
+        SnackBar(content: Text(message)),
       );
     }
   }
