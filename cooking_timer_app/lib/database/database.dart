@@ -31,6 +31,7 @@ class Recipes extends Table {
   RealColumn get temperature => real().nullable()();
   TextColumn get flourDetails => text().nullable()(); // JSON string for flour breakdown
   TextColumn get extraIngredients => text().nullable()(); // JSON string for extra ingredients
+  TextColumn get timerSteps => text().nullable()(); // JSON string for timer steps: [{"name": "step", "duration": 60}]
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -67,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -81,6 +82,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         await migrator.addColumn(recipes, recipes.extraIngredients);
       }
+      if (from < 8) {
+        await migrator.addColumn(recipes, recipes.timerSteps);
+      }
     },
   );
 
@@ -88,6 +92,7 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Recipe>> watchAllRecipes() => select(recipes).watch();
   Future<Recipe> getRecipe(int id) => (select(recipes)..where((tbl) => tbl.id.equals(id))).getSingle();
   Future<int> addRecipe(RecipesCompanion recipe) => into(recipes).insert(recipe);
+  Future<bool> updateRecipe(RecipesCompanion recipe) => update(recipes).replace(recipe);
   Future<int> deleteRecipe(int id) => (delete(recipes)..where((tbl) => tbl.id.equals(id))).go();
 
   // --- SCHEDULE & STEPS METHODS ---

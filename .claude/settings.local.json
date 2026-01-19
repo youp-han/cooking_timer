@@ -10,7 +10,10 @@
       "Bash(flutter pub run:*)",
       "Bash(flutter clean:*)",
       "Bash(flutter run:*)",
-      "Bash(flutter pub get:*)"
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

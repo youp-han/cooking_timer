@@ -8,6 +8,8 @@ import 'package:sourdough_timer/screens/settings_screen.dart';
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
+  static final GlobalKey<_MainScreenState> globalKey = GlobalKey<_MainScreenState>();
+
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
@@ -27,6 +29,14 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  void switchToTab(int index) {
+    if (index >= 0 && index < _widgetOptions.length) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override

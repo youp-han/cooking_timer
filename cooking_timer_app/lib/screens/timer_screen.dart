@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/widgets/common/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
@@ -11,41 +13,62 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen> {
   List<Map<String, dynamic>> _activeTimers = [];
+  bool _isLoading = true; // 초기 로딩 상태
 
   @override
   void initState() {
     super.initState();
-    final service = FlutterBackgroundService();
-    // Listen for updates from the background service
-    service.on('update').listen((data) {
-      if (data != null && data['activeTimers'] is List) {
-        if (mounted) {
-          setState(() {
-            _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
-          });
+
+    // Background service는 모바일 플랫폼에서만 지원
+    if (Platform.isAndroid || Platform.isIOS) {
+      final service = FlutterBackgroundService();
+      // Listen for updates from the background service
+      service.on('update').listen((data) {
+        if (data != null && data['activeTimers'] is List) {
+          if (mounted) {
+            setState(() {
+              _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
+              _isLoading = false; // 첫 업데이트를 받으면 로딩 완료
+            });
+          }
         }
-      }
-    });
+      });
+    } else {
+      // Windows/macOS/Linux 등에서는 로딩 완료 처리
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _deleteSchedule(int scheduleId) async {
-    final service = FlutterBackgroundService();
-    service.invoke('deleteSchedule', {'scheduleId': scheduleId});
+    if (Platform.isAndroid || Platform.isIOS) {
+      final service = FlutterBackgroundService();
+      service.invoke('deleteSchedule', {'scheduleId': scheduleId});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 로딩 중일 때
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('진행중인 타이머'),
+        ),
+        body: const LoadingWidget(),
+      );
+    }
+
+    // 타이머가 없을 때
     if (_activeTimers.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('진행중인 타이머'),
         ),
-        body: const Center(
-          child: Text(
-            '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
+        body: const EmptyStateWidget(
+          message: '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
+          icon: Icons.timer_off,
         ),
       );
     }

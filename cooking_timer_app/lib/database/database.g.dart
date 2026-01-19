@@ -469,6 +469,17 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _timerStepsMeta = const VerificationMeta(
+    'timerSteps',
+  );
+  @override
+  late final GeneratedColumn<String> timerSteps = GeneratedColumn<String>(
+    'timer_steps',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -498,6 +509,7 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     temperature,
     flourDetails,
     extraIngredients,
+    timerSteps,
     createdAt,
   ];
   @override
@@ -641,6 +653,12 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         ),
       );
     }
+    if (data.containsKey('timer_steps')) {
+      context.handle(
+        _timerStepsMeta,
+        timerSteps.isAcceptableOrUnknown(data['timer_steps']!, _timerStepsMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -716,6 +734,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.string,
         data['${effectivePrefix}extra_ingredients'],
       ),
+      timerSteps: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}timer_steps'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -745,6 +767,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final double? temperature;
   final String? flourDetails;
   final String? extraIngredients;
+  final String? timerSteps;
   final DateTime createdAt;
   const Recipe({
     required this.id,
@@ -762,6 +785,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     this.temperature,
     this.flourDetails,
     this.extraIngredients,
+    this.timerSteps,
     required this.createdAt,
   });
   @override
@@ -797,6 +821,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     }
     if (!nullToAbsent || extraIngredients != null) {
       map['extra_ingredients'] = Variable<String>(extraIngredients);
+    }
+    if (!nullToAbsent || timerSteps != null) {
+      map['timer_steps'] = Variable<String>(timerSteps);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -835,6 +862,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       extraIngredients: extraIngredients == null && nullToAbsent
           ? const Value.absent()
           : Value(extraIngredients),
+      timerSteps: timerSteps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timerSteps),
       createdAt: Value(createdAt),
     );
   }
@@ -860,6 +890,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       temperature: serializer.fromJson<double?>(json['temperature']),
       flourDetails: serializer.fromJson<String?>(json['flourDetails']),
       extraIngredients: serializer.fromJson<String?>(json['extraIngredients']),
+      timerSteps: serializer.fromJson<String?>(json['timerSteps']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -882,6 +913,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'temperature': serializer.toJson<double?>(temperature),
       'flourDetails': serializer.toJson<String?>(flourDetails),
       'extraIngredients': serializer.toJson<String?>(extraIngredients),
+      'timerSteps': serializer.toJson<String?>(timerSteps),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -902,6 +934,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     Value<double?> temperature = const Value.absent(),
     Value<String?> flourDetails = const Value.absent(),
     Value<String?> extraIngredients = const Value.absent(),
+    Value<String?> timerSteps = const Value.absent(),
     DateTime? createdAt,
   }) => Recipe(
     id: id ?? this.id,
@@ -921,6 +954,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     extraIngredients: extraIngredients.present
         ? extraIngredients.value
         : this.extraIngredients,
+    timerSteps: timerSteps.present ? timerSteps.value : this.timerSteps,
     createdAt: createdAt ?? this.createdAt,
   );
   Recipe copyWithCompanion(RecipesCompanion data) {
@@ -964,6 +998,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       extraIngredients: data.extraIngredients.present
           ? data.extraIngredients.value
           : this.extraIngredients,
+      timerSteps: data.timerSteps.present
+          ? data.timerSteps.value
+          : this.timerSteps,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -986,6 +1023,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('temperature: $temperature, ')
           ..write('flourDetails: $flourDetails, ')
           ..write('extraIngredients: $extraIngredients, ')
+          ..write('timerSteps: $timerSteps, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1008,6 +1046,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     temperature,
     flourDetails,
     extraIngredients,
+    timerSteps,
     createdAt,
   );
   @override
@@ -1029,6 +1068,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.temperature == this.temperature &&
           other.flourDetails == this.flourDetails &&
           other.extraIngredients == this.extraIngredients &&
+          other.timerSteps == this.timerSteps &&
           other.createdAt == this.createdAt);
 }
 
@@ -1048,6 +1088,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<double?> temperature;
   final Value<String?> flourDetails;
   final Value<String?> extraIngredients;
+  final Value<String?> timerSteps;
   final Value<DateTime> createdAt;
   const RecipesCompanion({
     this.id = const Value.absent(),
@@ -1065,6 +1106,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.temperature = const Value.absent(),
     this.flourDetails = const Value.absent(),
     this.extraIngredients = const Value.absent(),
+    this.timerSteps = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   RecipesCompanion.insert({
@@ -1083,6 +1125,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.temperature = const Value.absent(),
     this.flourDetails = const Value.absent(),
     this.extraIngredients = const Value.absent(),
+    this.timerSteps = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        calculationType = Value(calculationType),
@@ -1106,6 +1149,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<double>? temperature,
     Expression<String>? flourDetails,
     Expression<String>? extraIngredients,
+    Expression<String>? timerSteps,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1124,6 +1168,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (temperature != null) 'temperature': temperature,
       if (flourDetails != null) 'flour_details': flourDetails,
       if (extraIngredients != null) 'extra_ingredients': extraIngredients,
+      if (timerSteps != null) 'timer_steps': timerSteps,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1144,6 +1189,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<double?>? temperature,
     Value<String?>? flourDetails,
     Value<String?>? extraIngredients,
+    Value<String?>? timerSteps,
     Value<DateTime>? createdAt,
   }) {
     return RecipesCompanion(
@@ -1162,6 +1208,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       temperature: temperature ?? this.temperature,
       flourDetails: flourDetails ?? this.flourDetails,
       extraIngredients: extraIngredients ?? this.extraIngredients,
+      timerSteps: timerSteps ?? this.timerSteps,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1214,6 +1261,9 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (extraIngredients.present) {
       map['extra_ingredients'] = Variable<String>(extraIngredients.value);
     }
+    if (timerSteps.present) {
+      map['timer_steps'] = Variable<String>(timerSteps.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1238,6 +1288,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('temperature: $temperature, ')
           ..write('flourDetails: $flourDetails, ')
           ..write('extraIngredients: $extraIngredients, ')
+          ..write('timerSteps: $timerSteps, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2229,6 +2280,7 @@ typedef $$RecipesTableCreateCompanionBuilder =
       Value<double?> temperature,
       Value<String?> flourDetails,
       Value<String?> extraIngredients,
+      Value<String?> timerSteps,
       Value<DateTime> createdAt,
     });
 typedef $$RecipesTableUpdateCompanionBuilder =
@@ -2248,6 +2300,7 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<double?> temperature,
       Value<String?> flourDetails,
       Value<String?> extraIngredients,
+      Value<String?> timerSteps,
       Value<DateTime> createdAt,
     });
 
@@ -2332,6 +2385,11 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<String> get extraIngredients => $composableBuilder(
     column: $table.extraIngredients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get timerSteps => $composableBuilder(
+    column: $table.timerSteps,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2425,6 +2483,11 @@ class $$RecipesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get timerSteps => $composableBuilder(
+    column: $table.timerSteps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2509,6 +2572,11 @@ class $$RecipesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get timerSteps => $composableBuilder(
+    column: $table.timerSteps,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -2556,6 +2624,7 @@ class $$RecipesTableTableManager
                 Value<double?> temperature = const Value.absent(),
                 Value<String?> flourDetails = const Value.absent(),
                 Value<String?> extraIngredients = const Value.absent(),
+                Value<String?> timerSteps = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecipesCompanion(
                 id: id,
@@ -2573,6 +2642,7 @@ class $$RecipesTableTableManager
                 temperature: temperature,
                 flourDetails: flourDetails,
                 extraIngredients: extraIngredients,
+                timerSteps: timerSteps,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -2592,6 +2662,7 @@ class $$RecipesTableTableManager
                 Value<double?> temperature = const Value.absent(),
                 Value<String?> flourDetails = const Value.absent(),
                 Value<String?> extraIngredients = const Value.absent(),
+                Value<String?> timerSteps = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecipesCompanion.insert(
                 id: id,
@@ -2609,6 +2680,7 @@ class $$RecipesTableTableManager
                 temperature: temperature,
                 flourDetails: flourDetails,
                 extraIngredients: extraIngredients,
+                timerSteps: timerSteps,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

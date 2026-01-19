@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/services/notification_service.dart';
+import 'package:sourdough_timer/services/timer_calculation_service.dart';
 import 'package:drift/drift.dart' as drift;
 
 const String notificationChannelId = 'sourdough_timer_channel';
@@ -58,6 +59,7 @@ void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   final AppDatabase db = AppDatabase();
+  final NotificationService notificationService = NotificationService(flutterLocalNotificationsPlugin);
   final Map<int, int> lastNotifiedStep = {};
 
   if (service is AndroidServiceInstance) {
@@ -103,110 +105,57 @@ void onStart(ServiceInstance service) async {
     await db.deleteSchedule(scheduleId);
   });
 
-  Timer.periodic(const Duration(seconds: 1), (timer) async {
+  // 타이머를 5초마다 실행하여 데이터베이스 쿼리 빈도 감소 (60회/분 → 12회/분)
+  Timer.periodic(const Duration(seconds: 5), (timer) async {
     final allSchedulesWithSteps = await db.watchAllSchedulesWithSteps().first;
     final List<Map<String, dynamic>> activeTimersData = [];
 
     for (var scheduleWithSteps in allSchedulesWithSteps) {
       final schedule = scheduleWithSteps.schedule;
       final steps = scheduleWithSteps.steps;
-      final now = DateTime.now();
-      final elapsed = now.difference(schedule.startTime);
 
-      int cumulativeDuration = 0;
-      int totalDuration = steps.fold(0, (prev, step) => prev + step.durationInMinutes);
-      if (totalDuration == 0) totalDuration = 1;
+      // TimerCalculationService를 사용하여 타이머 상태 계산
+      final timerState = TimerCalculationService.calculateTimerState(
+        schedule: schedule,
+        steps: steps,
+        lastNotifiedStep: lastNotifiedStep[schedule.id] ?? -1,
+      );
 
-      String currentStepName = '완료';
-      Duration timeRemaining = Duration.zero;
-      int currentStepIndex = steps.length;
-      double progress = 1.0;
-      bool isCompleted = true;
-
-      for (int i = 0; i < steps.length; i++) {
-        final step = steps[i];
-        cumulativeDuration += step.durationInMinutes;
-        if (elapsed.inMinutes < cumulativeDuration) {
-          isCompleted = false;
-          currentStepIndex = i;
-          currentStepName = step.stepName;
-          timeRemaining = Duration(minutes: cumulativeDuration) - elapsed;
-          progress = elapsed.inSeconds / (totalDuration * 60);
-          if (progress > 1.0) progress = 1.0;
-
-          if (timeRemaining.inSeconds <= 0 && (lastNotifiedStep[schedule.id] ?? -1) < i) {
-            flutterLocalNotificationsPlugin.show(
-              schedule.id,
-              '${schedule.name}: ${step.stepName} 완료!',
-              '다음 단계로 넘어갈 시간입니다.',
-              const NotificationDetails(
-                android: AndroidNotificationDetails(
-                  notificationChannelId, '사워도우 타이머',
-                  icon: '@mipmap/ic_launcher',
-                  importance: Importance.high,
-                  sound: RawResourceAndroidNotificationSound('stage_complete'),
-                ),
-              ),
-            );
-            lastNotifiedStep[schedule.id] = i;
-          }
-          break;
-        }
-      }
-      
-      if (isCompleted && (lastNotifiedStep[schedule.id] ?? -1) < steps.length) {
-         flutterLocalNotificationsPlugin.show(
-            schedule.id,
-            '${schedule.name}: 모든 단계 완료!',
-            '수고하셨습니다!',
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                notificationChannelId, '사워도우 타이머',
-                icon: '@mipmap/ic_launcher',
-                importance: Importance.high,
-                sound: RawResourceAndroidNotificationSound('timer_complete'),
-              ),
-            ),
-          );
-          lastNotifiedStep[schedule.id] = steps.length;
-          await db.deleteSchedule(schedule.id);
+      // 단계 완료 알림
+      if (timerState.shouldNotifyStepComplete) {
+        await notificationService.showStepCompleteNotification(
+          scheduleId: schedule.id,
+          scheduleName: schedule.name,
+          stepName: steps[timerState.currentStepIndex].stepName,
+        );
+        lastNotifiedStep[schedule.id] = timerState.currentStepIndex;
       }
 
+      // 타이머 전체 완료 알림 및 스케줄 삭제
+      if (timerState.shouldNotifyTimerComplete) {
+        await notificationService.showTimerCompleteNotification(
+          scheduleId: schedule.id,
+          scheduleName: schedule.name,
+        );
+        lastNotifiedStep[schedule.id] = steps.length;
+        await db.deleteSchedule(schedule.id);
+      }
 
-      activeTimersData.add({
-        'id': schedule.id,
-        'name': schedule.name,
-        'currentStepName': currentStepName,
-        'currentStepIndex': currentStepIndex,
-        'totalSteps': steps.length,
-        'timeRemaining': timeRemaining.inSeconds,
-        'progress': progress,
-        'isCompleted': isCompleted,
-      });
+      // 활성 타이머 데이터에 추가
+      activeTimersData.add(timerState.toMap(schedule.id, schedule.name));
     }
 
+    // 포그라운드 서비스 알림 업데이트 (Android만)
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
-        String content = activeTimersData.isEmpty
-            ? '진행 중인 타이머 없음'
-            : '${activeTimersData.length}개의 타이머가 실행 중입니다.';
-        
-        flutterLocalNotificationsPlugin.show(
-          notificationId,
-          '사워도우 타이머',
-          content,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              notificationChannelId,
-              '사워도우 타이머',
-              icon: '@mipmap/ic_launcher',
-              ongoing: true,
-            ),
-          ),
+        await notificationService.showForegroundServiceNotification(
+          notificationId: notificationId,
+          activeTimerCount: activeTimersData.length,
         );
       }
     }
 
+    // UI에 활성 타이머 데이터 전송
     service.invoke('update', {'activeTimers': activeTimersData});
   });
 }

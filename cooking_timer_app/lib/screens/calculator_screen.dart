@@ -1,4 +1,8 @@
 import 'package:sourdough_timer/database/database.dart';
+import 'package:sourdough_timer/repositories/recipe_repository.dart';
+import 'package:sourdough_timer/services/baker_calculator_service.dart';
+import 'package:sourdough_timer/widgets/calculator/index.dart';
+import 'package:sourdough_timer/utils/input_formatters.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,23 +25,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Map<String, int> _result = {'starter': 0, 'flour': 0, 'water': 0};
   String _selectedTimeframe = '6-8';
 
-  final List<String> _timeframes = [
-    '4-6', '6-8', '8-10', '10-12', '12-14', '16-24'
-  ];
-
-  final Map<String, List<double>> _timeframeRatios = {
-    '4-6': [1, 1, 1],
-    '6-8': [1, 2, 2],
-    '8-10': [1, 3, 3],
-    '10-12': [1, 4, 4],
-    '12-14': [1, 5, 5],
-    '16-24': [1, 10, 10],
-  };
+  // 서비스에서 timeframes와 ratios 가져오기
+  List<String> get _timeframes => BakerCalculatorService.timeframes;
 
   void _updateRatiosFromTimeframe(String? timeframe) {
     if (timeframe == null) return;
 
-    final ratios = _timeframeRatios[timeframe] ?? [1, 2, 2];
+    final ratios = BakerCalculatorService.getRatiosForTimeframe(timeframe) ?? [1, 2, 2];
     setState(() {
       _selectedTimeframe = timeframe;
       _starterRatioCtrl.text = ratios[0].toString();
@@ -53,22 +47,25 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final flourRatio = double.tryParse(_flourRatioCtrl.text) ?? 1;
     final waterRatio = double.tryParse(_waterRatioCtrl.text) ?? 1;
 
-    if (totalStarter <= 0) {
-      setState(() {
-        _result = {'starter': 0, 'flour': 0, 'water': 0};
-      });
-      return;
-    }
-
-    final totalRatio = starterRatio + flourRatio + waterRatio;
-    if (totalRatio == 0) return;
-
     setState(() {
-      _result = {
-        'starter': (totalStarter * starterRatio / totalRatio).round(),
-        'flour': (totalStarter * flourRatio / totalRatio).round(),
-        'water': (totalStarter * waterRatio / totalRatio).round(),
-      };
+      _result = BakerCalculatorService.calculate(
+        totalStarter: totalStarter,
+        starterRatio: starterRatio,
+        flourRatio: flourRatio,
+        waterRatio: waterRatio,
+      );
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _totalStarterCtrl.clear();
+      _starterRatioCtrl.text = '1';
+      _flourRatioCtrl.text = '2';
+      _waterRatioCtrl.text = '2';
+      _temperatureCtrl.text = '24';
+      _selectedTimeframe = '6-8';
+      _result = {'starter': 0, 'flour': 0, 'water': 0};
     });
   }
 
@@ -106,7 +103,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   Future<void> _saveRecipeToDb(String name) async {
-    final db = Provider.of<AppDatabase>(context, listen: false);
+    final repository = Provider.of<RecipeRepository>(context, listen: false);
 
     final recipe = RecipesCompanion(
       name: drift.Value(name),
@@ -122,7 +119,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       resultWater: drift.Value(_result['water'] ?? 0),
     );
 
-    await db.addRecipe(recipe);
+    await repository.add(recipe);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -144,8 +141,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inputFormatter = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))];
-
     return GestureDetector(
         onTap: () {
           FocusScope.of(context).unfocus();
@@ -162,7 +157,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
-                inputFormatters: inputFormatter,
+                inputFormatters: AppInputFormatters.decimal,
                 onChanged: (_) => _calculate(),
                 onTap: () {
                   _totalStarterCtrl.selection = TextSelection(
@@ -179,7 +174,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
-                inputFormatters: inputFormatter,
+                inputFormatters: AppInputFormatters.decimal,
                 onChanged: (_) { /* Only update state if needed, calculation is on other fields */ },
                 onTap: () {
                   _temperatureCtrl.selection = TextSelection(
@@ -206,18 +201,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildRatioInput(_starterRatioCtrl, '스타터', inputFormatter)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildRatioInput(_flourRatioCtrl, '밀가루', inputFormatter)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildRatioInput(_waterRatioCtrl, '물', inputFormatter)),
-                ],
+              RatioInputRow(
+                starterController: _starterRatioCtrl,
+                flourController: _flourRatioCtrl,
+                waterController: _waterRatioCtrl,
+                inputFormatters: AppInputFormatters.decimal,
+                onChanged: (_) => _calculate(),
               ),
               _ResultBox(
                 result: _result,
                 onSave: () => _showSaveRecipeDialog(),
+                onReset: _reset,
               ),
             ],
           ),
@@ -225,32 +219,14 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
-  Widget _buildRatioInput(TextEditingController controller, String label, List<TextInputFormatter> formatters) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      keyboardType: TextInputType.number,
-      inputFormatters: formatters,
-      textAlign: TextAlign.center,
-      onChanged: (_) => _calculate(),
-      onTap: () {
-        controller.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: controller.text.length,
-        );
-      },
-    );
-  }
 }
 
 class _ResultBox extends StatelessWidget {
   final Map<String, int> result;
   final VoidCallback onSave;
+  final VoidCallback onReset;
 
-  const _ResultBox({required this.result, required this.onSave});
+  const _ResultBox({required this.result, required this.onSave, required this.onReset});
 
   @override
   Widget build(BuildContext context) {
@@ -272,13 +248,24 @@ class _ResultBox extends StatelessWidget {
           Text('밀가루: ${result['flour']}g', style: theme.textTheme.bodyLarge),
           Text('물: ${result['water']}g', style: theme.textTheme.bodyLarge),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onSave,
-              icon: const Icon(Icons.save),
-              label: const Text('레시피로 저장'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onReset,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('재설정'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onSave,
+                  icon: const Icon(Icons.save),
+                  label: const Text('저장'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
