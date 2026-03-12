@@ -1,17 +1,19 @@
 import 'dart:io';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/repositories/timer_repository.dart';
 import 'package:sourdough_timer/services/background_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sourdough_timer/screens/login_screen.dart';
+import 'package:sourdough_timer/screens/splash_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -66,7 +68,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
         fontFamily: 'Pretendard', // You might want to add a custom font
       ),
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

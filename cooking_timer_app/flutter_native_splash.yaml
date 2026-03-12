@@ -1,0 +1,38 @@
+# flutter_native_splash 설정
+# 모든 플랫폼(Android, iOS, Web, Windows, macOS, Linux)에 동일한 네이티브 스플래시 생성
+
+flutter_native_splash:
+  # 배경색 (흰색)
+  color: "#FFFFFF"
+
+  # 중앙 이미지
+  image: assets/splash_logo.png
+
+  # 브랜딩 이미지 (하단에 추가 로고 - 선택사항)
+  # branding: assets/branding.png
+  # branding_mode: bottom
+
+  # 다크모드 설정 (선택사항)
+  color_dark: "#FFFFFF"
+  image_dark: assets/splash_logo.png
+
+  # 플랫폼별 활성화
+  android: true
+  ios: true
+  web: true
+
+  # Android 12+ (Splash Screen API)
+  android_12:
+    color: "#FFFFFF"
+    image: assets/splash_logo.png
+    icon_background_color: "#FFFFFF"
+
+  # 웹 설정
+  web_image_mode: center
+
+  # fullscreen 모드 (상태바 숨김 - 선택사항)
+  fullscreen: false
+
+  # info.plist 업데이트 (iOS)
+  info_plist_files:
+    - 'ios/Runner/Info.plist'
