@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 
 class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
@@ -9,7 +10,10 @@ class GuideScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('가이드'),
       ),
-      body: ListView(
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildSection(
@@ -314,6 +318,10 @@ class GuideScreen extends StatelessWidget {
               '• 수화율(Hydration): 물의 비율 (예: 70%)',
             ],
           ),
+        ],
+      ),
+          ),
+          const BannerAdWidget(),
         ],
       ),
     );

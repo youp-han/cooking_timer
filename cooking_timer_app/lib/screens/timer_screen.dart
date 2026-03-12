@@ -56,7 +56,12 @@ class _TimerScreenState extends State<TimerScreen> {
         appBar: AppBar(
           title: const Text('진행중인 타이머'),
         ),
-        body: const LoadingWidget(),
+        body: const Column(
+          children: [
+            Expanded(child: LoadingWidget()),
+            BannerAdWidget(),
+          ],
+        ),
       );
     }
 
@@ -66,9 +71,16 @@ class _TimerScreenState extends State<TimerScreen> {
         appBar: AppBar(
           title: const Text('진행중인 타이머'),
         ),
-        body: const EmptyStateWidget(
-          message: '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
-          icon: Icons.timer_off,
+        body: const Column(
+          children: [
+            Expanded(
+              child: EmptyStateWidget(
+                message: '시작된 타이머가 없습니다.\n\'내 레시피\'에서 타이머를 시작해보세요!',
+                icon: Icons.timer_off,
+              ),
+            ),
+            BannerAdWidget(),
+          ],
         ),
       );
     }
@@ -77,15 +89,22 @@ class _TimerScreenState extends State<TimerScreen> {
       appBar: AppBar(
         title: const Text('진행중인 타이머'),
       ),
-      body: ListView.builder(
-        itemCount: _activeTimers.length,
-        itemBuilder: (context, index) {
-          final timerData = _activeTimers[index];
-          return _TimerCard(
-            timerData: timerData,
-            onDelete: () => _deleteSchedule(timerData['id'] as int),
-          );
-        },
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _activeTimers.length,
+              itemBuilder: (context, index) {
+                final timerData = _activeTimers[index];
+                return _TimerCard(
+                  timerData: timerData,
+                  onDelete: () => _deleteSchedule(timerData['id'] as int),
+                );
+              },
+            ),
+          ),
+          const BannerAdWidget(),
+        ],
       ),
     );
   }

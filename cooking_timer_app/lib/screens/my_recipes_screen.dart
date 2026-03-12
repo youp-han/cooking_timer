@@ -95,12 +95,15 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                   ]
                 : null,
           ),
-          body: recipes.isEmpty
-              ? const EmptyStateWidget(
-                  message: '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
-                  icon: Icons.receipt_long,
-                )
-              : ListView.builder(
+          body: Column(
+            children: [
+              Expanded(
+                child: recipes.isEmpty
+                    ? const EmptyStateWidget(
+                        message: '저장된 레시피가 없습니다.\n계산기에서 결과를 저장해보세요!',
+                        icon: Icons.receipt_long,
+                      )
+                    : ListView.builder(
             itemCount: recipes.length,
             itemBuilder: (context, index) {
               final recipe = recipes[index];
@@ -169,6 +172,10 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                 ),
               );
             },
+          ),
+              ),
+              const BannerAdWidget(),
+            ],
           ),
         );
       },

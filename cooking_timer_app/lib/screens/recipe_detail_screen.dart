@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/screens/timer_setup_screen.dart';
 import 'package:sourdough_timer/widgets/cards/index.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 import 'package:flutter/material.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
@@ -34,6 +35,8 @@ class RecipeDetailScreen extends StatelessWidget {
           children: [
             _buildDetailCard(context),
             const Spacer(),
+            const Center(child: BannerAdWidget()),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(

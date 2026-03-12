@@ -2,6 +2,7 @@ import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/services/baker_calculator_service.dart';
 import 'package:sourdough_timer/widgets/calculator/index.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 import 'package:sourdough_timer/utils/input_formatters.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
@@ -208,6 +209,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 inputFormatters: AppInputFormatters.decimal,
                 onChanged: (_) => _calculate(),
               ),
+              const SizedBox(height: 16),
+              const Center(child: BannerAdWidget()),
               _ResultBox(
                 result: _result,
                 onSave: () => _showSaveRecipeDialog(),

@@ -3,6 +3,7 @@ import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/services/dough_calculator_service.dart';
 import 'package:sourdough_timer/widgets/calculator/index.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 import 'package:sourdough_timer/utils/input_formatters.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
@@ -485,6 +486,8 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
               ),
               const SizedBox(height: 16),
               _buildExtraIngredientsSection(inputFormatter),
+              const SizedBox(height: 16),
+              const Center(child: BannerAdWidget()),
               const SizedBox(height: 24),
               Row(
                 children: [

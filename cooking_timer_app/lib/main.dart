@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sourdough_timer/screens/login_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -27,6 +28,7 @@ Future<void> main() async {
   // Initialize background service only on mobile platforms
   if (Platform.isAndroid || Platform.isIOS) {
     await initializeService();
+    await MobileAds.instance.initialize();
   }
 
   runApp(

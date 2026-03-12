@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sourdough_timer/screens/main_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -105,6 +106,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+            ),
+            // 배너 광고
+            const Positioned(
+              bottom: 36,
+              left: 0,
+              right: 0,
+              child: Center(child: BannerAdWidget()),
             ),
             // 버전 정보
             if (_versionString.isNotEmpty)

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/screens/main_screen.dart';
+import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -233,6 +234,7 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
               },
             ),
           ),
+          const Center(child: BannerAdWidget()),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(

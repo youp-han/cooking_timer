@@ -36,7 +36,7 @@ Future<void> initializeService() async {
       isForegroundMode: true,
       notificationChannelId: notificationChannelId,
       initialNotificationTitle: '사워도우 타이머',
-      initialNotificationContent: '서비스를 초기화하는 중...',
+      initialNotificationContent: '',
       foregroundServiceNotificationId: notificationId,
     ),
     iosConfiguration: IosConfiguration(
