@@ -114,7 +114,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
         // 추가 재료 g 필드 업데이트
         for (int i = 0; i < _extraIngredients.length; i++) {
           if (skipExtraIndex != i) {
-            _extraIngredients[i].gramsController.text = calculationResult.extras['extra_$i'].toString();
+            _extraIngredients[i].gramsController.text = (calculationResult.extras['extra_$i'] ?? 0).toString();
           }
         }
       }
