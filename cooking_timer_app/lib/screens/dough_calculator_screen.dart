@@ -426,6 +426,10 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                   fillColor: _calculationMode == 'byIngredients'
                       ? Colors.grey.shade200
                       : null,
+                  helperText: _calculationMode == 'byDough' && (double.tryParse(_totalDoughCtrl.text) ?? 0) <= 0
+                      ? '총 도우 무게를 먼저 입력하면 아래 % 값을 계산할 수 있습니다'
+                      : null,
+                  helperMaxLines: 2,
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: inputFormatter,
@@ -454,6 +458,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 gramsController: _waterGramsCtrl,
                 label: '물',
                 isIngredientsMode: _calculationMode == 'byIngredients',
+                isTotalDoughEmpty: _calculationMode == 'byDough' && (double.tryParse(_totalDoughCtrl.text) ?? 0) <= 0,
                 onPercentChanged: (_) => _calculate(),
                 onGramsChanged: (value) => _calculationMode == 'byIngredients'
                     ? _calculateByIngredients()
@@ -466,6 +471,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 gramsController: _saltGramsCtrl,
                 label: '소금',
                 isIngredientsMode: _calculationMode == 'byIngredients',
+                isTotalDoughEmpty: _calculationMode == 'byDough' && (double.tryParse(_totalDoughCtrl.text) ?? 0) <= 0,
                 onPercentChanged: (_) => _calculate(),
                 onGramsChanged: (value) => _calculationMode == 'byIngredients'
                     ? _calculateByIngredients()
@@ -478,6 +484,7 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                 gramsController: _levainGramsCtrl,
                 label: '르방',
                 isIngredientsMode: _calculationMode == 'byIngredients',
+                isTotalDoughEmpty: _calculationMode == 'byDough' && (double.tryParse(_totalDoughCtrl.text) ?? 0) <= 0,
                 onPercentChanged: (_) => _calculate(),
                 onGramsChanged: (value) => _calculationMode == 'byIngredients'
                     ? _calculateByIngredients()
@@ -745,12 +752,12 @@ class _DoughCalculatorScreenState extends State<DoughCalculatorScreen> {
                               labelText: '%',
                               border: const OutlineInputBorder(),
                               isDense: true,
-                              filled: _calculationMode == 'byIngredients',
-                              fillColor: _calculationMode == 'byIngredients' ? Colors.grey.shade200 : null,
+                              filled: _calculationMode == 'byIngredients' || (_calculationMode == 'byDough' && (double.tryParse(_totalDoughCtrl.text) ?? 0) <= 0),
+                              fillColor: Colors.grey.shade200,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: inputFormatter,
-                            enabled: _calculationMode != 'byIngredients',
+                            enabled: _calculationMode != 'byIngredients' && (_calculationMode != 'byDough' || (double.tryParse(_totalDoughCtrl.text) ?? 0) > 0),
                             readOnly: _calculationMode == 'byIngredients',
                             onChanged: (_) => _calculate(),
                             onTap: () {

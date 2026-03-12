@@ -16,6 +16,7 @@ class DualInputField extends StatelessWidget {
   final TextEditingController gramsController;
   final String label;
   final bool isIngredientsMode;
+  final bool isTotalDoughEmpty;
   final ValueChanged<String>? onPercentChanged;
   final ValueChanged<String>? onGramsChanged;
   final List<TextInputFormatter>? percentFormatters;
@@ -27,6 +28,7 @@ class DualInputField extends StatelessWidget {
     required this.gramsController,
     required this.label,
     this.isIngredientsMode = false,
+    this.isTotalDoughEmpty = false,
     this.onPercentChanged,
     this.onGramsChanged,
     this.percentFormatters,
@@ -35,6 +37,8 @@ class DualInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final percentDisabled = isIngredientsMode || isTotalDoughEmpty;
+
     return Row(
       children: [
         // % 입력
@@ -45,15 +49,15 @@ class DualInputField extends StatelessWidget {
             decoration: InputDecoration(
               labelText: '$label (%)',
               border: const OutlineInputBorder(),
-              filled: isIngredientsMode,
-              fillColor: isIngredientsMode ? Colors.grey.shade200 : null,
+              filled: percentDisabled,
+              fillColor: percentDisabled ? Colors.grey.shade200 : null,
             ),
             keyboardType: TextInputType.number,
             inputFormatters: percentFormatters,
-            enabled: !isIngredientsMode,
+            enabled: !percentDisabled,
             readOnly: isIngredientsMode,
             onChanged: onPercentChanged,
-            onTap: autoSelectOnTap && !isIngredientsMode
+            onTap: autoSelectOnTap && !percentDisabled
                 ? () => TextFieldHelper.selectAllOnTap(percentController)
                 : null,
           ),
