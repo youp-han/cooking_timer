@@ -114,6 +114,6 @@ lib/
 
 ## 개발 정보
 
-- **버전**: 0.0.8
+- **버전**: 0.1.0
 - **개발사**: JJST Software
 - **문의**: jjst.soft+dev@gmail.com

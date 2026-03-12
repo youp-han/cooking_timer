@@ -19,7 +19,7 @@ class GuideScreen extends StatelessWidget {
           _buildSection(
             context,
             '📱 앱 소개',
-            '사워도우 베이킹 도우미는 사워도우 빵 만들기를 위한 재료 계산과 타이머 기능을 제공합니다.',
+            'Baking Timer는 사워도우 빵 만들기를 위한 재료 계산과 타이머 기능을 제공합니다.',
           ),
           const SizedBox(height: 24),
           _buildSection(
