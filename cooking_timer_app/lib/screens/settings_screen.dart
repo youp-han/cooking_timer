@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sourdough_timer/screens/login_screen.dart';
 import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -291,7 +292,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // 앱 정보 섹션
           Card(
-            child: Padding(
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,6 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
           const SizedBox(height: 24),
