@@ -147,7 +147,16 @@ void onStart(ServiceInstance service) async {
 
     // 포그라운드 서비스 알림 업데이트 (Android만)
     if (service is AndroidServiceInstance) {
-      if (await service.isForegroundService()) {
+      if (activeTimersData.isEmpty) {
+        // 타이머가 없으면 백그라운드로 전환
+        if (await service.isForegroundService()) {
+          service.setAsBackgroundService();
+        }
+      } else {
+        // 타이머가 있으면 포그라운드로 전환 및 알림 업데이트
+        if (!await service.isForegroundService()) {
+          service.setAsForegroundService();
+        }
         await notificationService.showForegroundServiceNotification(
           notificationId: notificationId,
           activeTimerCount: activeTimersData.length,
