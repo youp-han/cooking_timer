@@ -246,7 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('타이머 알림'),
-                    subtitle: const Text('타이머 단계 완료 시 알림을 받습니다'),
+                    subtitle: const Text('단계 전환 및 타이머 완료 시 알림을 받습니다'),
                     trailing: Switch(
                       value: _isNotificationEnabled,
                       onChanged: (value) {
