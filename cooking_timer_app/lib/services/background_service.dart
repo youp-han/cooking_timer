@@ -32,19 +32,26 @@ Future<void> initializeService() async {
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
-      autoStart: true,
+      autoStart: false,
       isForegroundMode: true,
       notificationChannelId: notificationChannelId,
       initialNotificationTitle: '사워도우 타이머',
-      initialNotificationContent: '',
+      initialNotificationContent: '타이머가 실행 중입니다.',
       foregroundServiceNotificationId: notificationId,
     ),
     iosConfiguration: IosConfiguration(
-      autoStart: true,
+      autoStart: false,
       onForeground: onStart,
       onBackground: onIosBackground,
     ),
   );
+}
+
+Future<void> startBackgroundService() async {
+  final service = FlutterBackgroundService();
+  if (!await service.isRunning()) {
+    await service.startService();
+  }
 }
 
 @pragma('vm:entry-point')
@@ -61,6 +68,9 @@ void onStart(ServiceInstance service) async {
   final AppDatabase db = AppDatabase();
   final NotificationService notificationService = NotificationService(flutterLocalNotificationsPlugin);
   final Map<int, int> lastNotifiedStep = {};
+  final Set<int> newlyCreatedScheduleIds = {};
+  final Set<int> completedScheduleIds = {};
+  bool uiSubscribed = false;
 
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
@@ -73,6 +83,14 @@ void onStart(ServiceInstance service) async {
 
   service.on('stopSelf').listen((event) {
     service.stopSelf();
+  });
+
+  service.on('subscribe').listen((event) {
+    uiSubscribed = true;
+  });
+
+  service.on('unsubscribe').listen((event) {
+    uiSubscribed = false;
   });
 
   service.on('startTimer').listen((event) async {
@@ -96,7 +114,8 @@ void onStart(ServiceInstance service) async {
         ),
       );
     }
-    await db.createScheduleWithSteps(schedule, stepCompanions);
+    final scheduleId = await db.createScheduleWithSteps(schedule, stepCompanions);
+    newlyCreatedScheduleIds.add(scheduleId);
   });
   
   service.on('deleteSchedule').listen((event) async {
@@ -105,14 +124,24 @@ void onStart(ServiceInstance service) async {
     await db.deleteSchedule(scheduleId);
   });
 
-  // 타이머를 5초마다 실행하여 데이터베이스 쿼리 빈도 감소 (60회/분 → 12회/분)
-  Timer.periodic(const Duration(seconds: 5), (timer) async {
+  Timer.periodic(const Duration(seconds: 1), (timer) async {
     final allSchedulesWithSteps = await db.watchAllSchedulesWithSteps().first;
     final List<Map<String, dynamic>> activeTimersData = [];
 
     for (var scheduleWithSteps in allSchedulesWithSteps) {
       final schedule = scheduleWithSteps.schedule;
       final steps = scheduleWithSteps.steps;
+
+      // 방금 생성된 스케줄은 첫 루프에서 알림 체크 건너뜀
+      if (newlyCreatedScheduleIds.contains(schedule.id)) {
+        newlyCreatedScheduleIds.remove(schedule.id);
+        activeTimersData.add(TimerCalculationService.calculateTimerState(
+          schedule: schedule,
+          steps: steps,
+          lastNotifiedStep: steps.length - 1,
+        ).toMap(schedule.id, schedule.name));
+        continue;
+      }
 
       // TimerCalculationService를 사용하여 타이머 상태 계산
       final timerState = TimerCalculationService.calculateTimerState(
@@ -131,14 +160,23 @@ void onStart(ServiceInstance service) async {
         lastNotifiedStep[schedule.id] = timerState.currentStepIndex;
       }
 
-      // 타이머 전체 완료 알림 및 스케줄 삭제
+      // 타이머 전체 완료 알림
       if (timerState.shouldNotifyTimerComplete) {
         await notificationService.showTimerCompleteNotification(
           scheduleId: schedule.id,
           scheduleName: schedule.name,
         );
         lastNotifiedStep[schedule.id] = steps.length;
+        completedScheduleIds.add(schedule.id);
+      }
+
+      // 완료된 타이머는 UI에 완료 상태로 한 번 노출 후 다음 루프에서 삭제
+      if (completedScheduleIds.contains(schedule.id)) {
+        activeTimersData.add(timerState.toMap(schedule.id, schedule.name));
         await db.deleteSchedule(schedule.id);
+        completedScheduleIds.remove(schedule.id);
+        lastNotifiedStep.remove(schedule.id);
+        continue;
       }
 
       // 활성 타이머 데이터에 추가
@@ -148,23 +186,20 @@ void onStart(ServiceInstance service) async {
     // 포그라운드 서비스 알림 업데이트 (Android만)
     if (service is AndroidServiceInstance) {
       if (activeTimersData.isEmpty) {
-        // 타이머가 없으면 백그라운드로 전환
-        if (await service.isForegroundService()) {
-          service.setAsBackgroundService();
-        }
+        // 타이머가 없으면 서비스 종료
+        service.stopSelf();
+        return;
       } else {
-        // 타이머가 있으면 포그라운드로 전환 및 알림 업데이트
+        // 타이머가 있으면 포그라운드 유지
         if (!await service.isForegroundService()) {
           service.setAsForegroundService();
         }
-        await notificationService.showForegroundServiceNotification(
-          notificationId: notificationId,
-          activeTimerCount: activeTimersData.length,
-        );
       }
     }
 
-    // UI에 활성 타이머 데이터 전송
-    service.invoke('update', {'activeTimers': activeTimersData});
+    // 타이머 화면이 활성화된 경우에만 UI 업데이트 전송
+    if (uiSubscribed) {
+      service.invoke('update', {'activeTimers': activeTimersData});
+    }
   });
 }

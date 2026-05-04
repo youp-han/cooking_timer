@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/widgets/common/index.dart';
@@ -13,28 +14,41 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen> {
   List<Map<String, dynamic>> _activeTimers = [];
-  bool _isLoading = true; // 초기 로딩 상태
+  bool _isLoading = true;
+
+  @override
+  void dispose() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      FlutterBackgroundService().invoke('unsubscribe', {});
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
 
-    // Background service는 모바일 플랫폼에서만 지원
     if (Platform.isAndroid || Platform.isIOS) {
       final service = FlutterBackgroundService();
-      // Listen for updates from the background service
       service.on('update').listen((data) {
         if (data != null && data['activeTimers'] is List) {
           if (mounted) {
             setState(() {
               _activeTimers = List<Map<String, dynamic>>.from(data['activeTimers']);
-              _isLoading = false; // 첫 업데이트를 받으면 로딩 완료
+              _isLoading = false;
             });
           }
         }
       });
+      // 서비스가 실행 중이 아니면(타이머 없음) 로딩 즉시 해제
+      Future.delayed(const Duration(milliseconds: 500), () async {
+        if (!mounted) return;
+        if (!await service.isRunning()) {
+          setState(() => _isLoading = false);
+        }
+      });
+      service.invoke('subscribe', {});
     } else {
-      // Windows/macOS/Linux 등에서는 로딩 완료 처리
       setState(() {
         _isLoading = false;
       });
@@ -125,7 +139,7 @@ class _TimerCard extends StatelessWidget {
     final totalSteps = timerData['totalSteps'] as int;
     final currentStepIndex = timerData['currentStepIndex'] as int;
     final currentStepName = timerData['currentStepName'] as String;
-    final progress = timerData['progress'] as double;
+    final progress = (timerData['progress'] as num).toDouble();
     final isCompleted = timerData['isCompleted'] as bool;
 
     return Card(
@@ -160,7 +174,41 @@ class _TimerCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
             ] else ...[
-              Text('모든 단계 완료!', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green.shade600, size: 48),
+                    const SizedBox(height: 8),
+                    Text(
+                      '모든 단계 완료!',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '수고하셨습니다 🎉',
+                      style: TextStyle(color: Colors.green.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: 1.0,
+                minHeight: 10,
+                borderRadius: BorderRadius.circular(5),
+                color: Colors.green,
+              ),
             ]
           ],
         ),

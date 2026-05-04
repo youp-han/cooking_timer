@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:sourdough_timer/database/database.dart';
 import 'package:sourdough_timer/repositories/recipe_repository.dart';
 import 'package:sourdough_timer/screens/main_screen.dart';
+import 'package:sourdough_timer/services/background_service.dart';
 import 'package:sourdough_timer/widgets/common/banner_ad_widget.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
@@ -146,6 +147,7 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
 
     // Background service는 모바일 플랫폼에서만 사용
     if (Platform.isAndroid || Platform.isIOS) {
+      await startBackgroundService();
       final service = FlutterBackgroundService();
       final timerData = {
         'name': widget.recipe.name,

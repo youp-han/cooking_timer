@@ -27,7 +27,7 @@ class NotificationService {
 
     await _notificationsPlugin.show(
       scheduleId,
-      '$scheduleName: $stepName 완료!',
+      '$scheduleName: $stepName 시작!',
       '다음 단계로 넘어갈 시간입니다.',
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -35,7 +35,6 @@ class NotificationService {
           '사워도우 타이머',
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
-          sound: RawResourceAndroidNotificationSound('stage_complete'),
         ),
       ),
     );
@@ -58,33 +57,9 @@ class NotificationService {
           '사워도우 타이머',
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
-          sound: RawResourceAndroidNotificationSound('timer_complete'),
         ),
       ),
     );
   }
 
-  /// 포그라운드 서비스 알림 업데이트
-  Future<void> showForegroundServiceNotification({
-    required int notificationId,
-    required int activeTimerCount,
-  }) async {
-    final String content = activeTimerCount == 0
-        ? '진행 중인 타이머 없음'
-        : '$activeTimerCount개의 타이머가 실행 중입니다.';
-
-    await _notificationsPlugin.show(
-      notificationId,
-      '사워도우 타이머',
-      content,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _notificationChannelId,
-          '사워도우 타이머',
-          icon: '@mipmap/ic_launcher',
-          ongoing: true,
-        ),
-      ),
-    );
-  }
 }

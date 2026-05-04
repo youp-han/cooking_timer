@@ -30,7 +30,7 @@ class TimerState {
       'currentStepIndex': currentStepIndex,
       'totalSteps': totalSteps,
       'timeRemaining': timeRemaining.inSeconds,
-      'progress': progress,
+      'progress': progress.toDouble(),
       'isCompleted': isCompleted,
     };
   }
@@ -80,8 +80,8 @@ class TimerCalculationService {
         progress = elapsed.inSeconds / (totalDuration * 60);
         if (progress > 1.0) progress = 1.0;
 
-        // 단계가 방금 완료되었고 아직 알림을 보내지 않았으면
-        if (timeRemaining.inSeconds <= 0 && lastNotifiedStep < i) {
+        // 단계가 바뀌었고 아직 알림을 보내지 않았으면
+        if (i > 0 && lastNotifiedStep < i) {
           shouldNotifyStepComplete = true;
         }
         break;
@@ -89,7 +89,7 @@ class TimerCalculationService {
     }
 
     // 모든 단계가 완료되었고 아직 완료 알림을 보내지 않았으면
-    if (isCompleted && lastNotifiedStep < steps.length) {
+    if (isCompleted && steps.isNotEmpty && lastNotifiedStep < steps.length) {
       shouldNotifyTimerComplete = true;
     }
 
