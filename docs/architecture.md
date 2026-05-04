@@ -8,7 +8,8 @@
 │          Flutter Application            │
 ├─────────────────────────────────────────┤
 │  Presentation Layer (UI/Screens)        │
-│  - LoginScreen                          │
+│  - SplashScreen                         │
+│  - LoginScreen (타이틀 화면)            │
 │  - MainScreen (BottomNavigationBar)     │
 │    ├─ MyRecipesScreen                   │
 │    ├─ GuideScreen                       │
@@ -60,7 +61,8 @@ cooking_timer_app/
 │   │   ├── database.dart              # Drift 데이터베이스 정의
 │   │   └── database.g.dart            # 생성된 코드
 │   ├── screens/
-│   │   ├── login_screen.dart          # 로그인 화면
+│   │   ├── splash_screen.dart         # 스플래시 화면
+│   │   ├── login_screen.dart          # 타이틀(시작) 화면
 │   │   ├── main_screen.dart           # 메인 네비게이션
 │   │   ├── my_recipes_screen.dart     # 레시피 목록
 │   │   ├── recipe_detail_screen.dart  # 레시피 상세
@@ -72,7 +74,9 @@ cooking_timer_app/
 │   │   ├── timer_screen.dart          # 타이머 목록
 │   │   └── timer_setup_screen.dart    # 타이머 설정
 │   └── services/
-│       └── background_service.dart    # 백그라운드 타이머 서비스
+│       ├── background_service.dart    # 백그라운드 타이머 서비스
+│       ├── notification_service.dart  # 알림 발송 서비스
+│       └── timer_calculation_service.dart # 타이머 상태 계산 서비스
 ├── android/                           # Android 플랫폼 코드
 ├── ios/                               # iOS 플랫폼 코드 (예정)
 ├── windows/                           # Windows 플랫폼 코드
@@ -338,27 +342,27 @@ void _loadDefaultTemplate() {
 ```
 
 #### 4.3.3 백그라운드 서비스
+- **시작**: 타이머 시작 시에만 실행 (autoStart: false)
+- **종료**: 활성 타이머가 없으면 stopSelf()로 자동 종료
+- **업데이트 주기**: 매 1초
+- **UI 구독**: TimerScreen이 활성화될 때 subscribe, 이탈 시 unsubscribe
+  - subscribe 상태일 때만 'update' 이벤트 전송 (배터리 최적화)
+- **알림**: 단계 전환 시 및 전체 완료 시 시스템 알림 발송
+- **상태 계산**: TimerCalculationService.calculateTimerState()로 분리
+
 ```dart
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // 타이머 맵 관리
-  Map<int, TimerData> activeTimers = {};
+  bool uiSubscribed = false;
 
-  // 매 1초마다 업데이트
-  Timer.periodic(Duration(seconds: 1), (timer) {
-    for (var timerData in activeTimers.values) {
-      timerData.tick();
+  service.on('subscribe').listen((_) => uiSubscribed = true);
+  service.on('unsubscribe').listen((_) => uiSubscribed = false);
 
-      if (timerData.isStepComplete()) {
-        showNotification(timerData.currentStep);
-        timerData.nextStep();
-      }
-    }
-
-    // UI 업데이트 전송
-    service.invoke('update', {
-      'activeTimers': activeTimers.toList()
-    });
+  Timer.periodic(Duration(seconds: 1), (timer) async {
+    // DB에서 활성 타이머 조회
+    // 타이머 없으면 service.stopSelf()
+    // 단계 전환 감지 → 알림 발송
+    // uiSubscribed이면 'update' 이벤트 전송
   });
 }
 ```
